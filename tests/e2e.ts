@@ -22,6 +22,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3200'
+const ADMIN_INBOX = process.env.ADMIN_EMAIL ?? 'hiringhub001@gmail.com'
 const prisma = new PrismaClient()
 
 let passed = 0
@@ -89,6 +90,16 @@ async function run(browser: Browser) {
   await page.waitForURL(/\/employer/, { timeout: 20000 })
   check('Recruiter lands on the employer dashboard', page.url().includes('/employer'))
 
+  const recruiterUser = await prisma.user.findFirst({ where: { email: recruiterEmail } })
+  const signupEmails = await prisma.emailLog.findMany({
+    where: { entity: 'User', entityId: recruiterUser?.id },
+  })
+  check('Welcome + admin alert sent on registration', signupEmails.length === 2, `found ${signupEmails.length}`)
+  check(
+    'Registration alert goes to the operator inbox',
+    signupEmails.some((email) => email.to === ADMIN_INBOX),
+  )
+
   /* 2 — post a job --------------------------------------------------------- */
   console.log('\n2. Recruiter posts a job')
   await page.goto(`${BASE}/employer/post-job`)
@@ -122,8 +133,13 @@ async function run(browser: Browser) {
   await page.fill('#skills', 'Customer service, Communication, Problem solving')
   await page.fill('#contactEmail', recruiterEmail)
   await page.click('button:has-text("Submit job for review")')
-  await page.waitForSelector('text=/Job submitted|Job published/i', { timeout: 15000 })
+  await page.waitForSelector('text=/Job received|Job published/i', { timeout: 20000 })
   check('Job submitted and confirmation shown', true)
+  const postedBody = (await page.textContent('body')) ?? ''
+  check(
+    'Recruiter is told the job is not live until reviewed',
+    /NOT live yet|queued for review/i.test(postedBody),
+  )
 
   const job = await prisma.job.findFirst({ where: { title: jobTitle } })
   check('Job saved to the database', Boolean(job))
@@ -136,8 +152,9 @@ async function run(browser: Browser) {
     `found ${postEmails.length}`,
   )
   check(
-    'Admin copy addressed to admin@careerhub.com.ng',
-    postEmails.some((email) => email.to === 'admin@careerhub.com.ng'),
+    'Admin copy addressed to the operator inbox',
+    postEmails.some((email) => email.to === ADMIN_INBOX),
+    postEmails.map((email) => email.to).join(','),
   )
 
   /* 3 — admin approves ------------------------------------------------------ */
@@ -226,10 +243,8 @@ async function run(browser: Browser) {
     appEmails.some((email) => email.template === 'application_employer' && email.to === recruiterEmail),
   )
   check(
-    'Admin copy queued to admin@careerhub.com.ng',
-    appEmails.some(
-      (email) => email.template === 'application_admin' && email.to === 'admin@careerhub.com.ng',
-    ),
+    'Admin copy queued to the operator inbox',
+    appEmails.some((email) => email.template === 'application_admin' && email.to === ADMIN_INBOX),
   )
 
   await page.goto(`${BASE}/dashboard/applications`)
@@ -292,11 +307,47 @@ async function run(browser: Browser) {
   check('Unrelated candidate cannot download a CV', otherDownload.status() === 404)
   await anon.close()
 
+  /* 7c — admin dashboard is admin-only ------------------------------------- */
+  console.log('\n7c. Admin dashboard visibility')
+  const recruiterBody = (await page.textContent('body')) ?? ''
+  check('Recruiter is shown no Admin link', !/>Admin</.test(recruiterBody))
+  await page.goto(`${BASE}/admin`)
+  check('Recruiter cannot open /admin', !page.url().includes('/admin'))
+
+  await page.context().clearCookies()
+  await signIn(page, 'admin@careerhub.com.ng')
+  await page.goto(`${BASE}/`)
+  check('Admin sees an Admin link in the header', ((await page.textContent('body')) ?? '').includes('Admin'))
+  await page.click('a[href="/admin"]')
+  await page.waitForURL(/\/admin/, { timeout: 15000 })
+  check('Admin link opens the dashboard', page.url().includes('/admin'))
+
   /* 8 — outbound feed ------------------------------------------------------- */
   console.log('\n8. Outbound distribution')
   const feed = await fetch(`${BASE}/feeds/jobs.xml`).then((response) => response.text())
   check('Job feed includes the published listing', feed.includes(jobTitle))
   check('Feed uses the aggregator XML format', feed.includes('<source>') && feed.includes('<referencenumber>'))
+
+  /* 9 — expiry and ads.txt --------------------------------------------------- */
+  console.log('\n9. Expiry handling and ads.txt')
+  await prisma.job.update({
+    where: { id: published!.id },
+    data: { expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+  })
+
+  const listing = await page.request.get(`${BASE}/jobs?q=${encodeURIComponent('Test Support Officer')}`)
+  check('Expired job drops out of search', !(await listing.text()).includes(jobTitle))
+
+  const expiredFeed = await fetch(`${BASE}/feeds/jobs.xml`).then((r) => r.text())
+  check('Expired job drops out of the partner feed', !expiredFeed.includes(jobTitle))
+
+  await page.goto(`${BASE}/jobs/${published!.slug}`)
+  const expiredPage = (await page.textContent('body')) ?? ''
+  check('Expired job page says it has closed', /This job has closed/i.test(expiredPage))
+  check('Expired job page hides the apply form', !expiredPage.includes('Submit application'))
+
+  const adsTxt = await fetch(`${BASE}/ads.txt`).then((r) => r.text())
+  check('ads.txt is served', adsTxt.length > 0)
 
   /* cleanup ---------------------------------------------------------------- */
   await prisma.emailLog.deleteMany({ where: { entityId: { in: [application!.id, published!.id] } } })

@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         {
           heading: 'Who we are',
           body: [
-            `${site.name} is a career resource website and job board operated from ${site.address}. For the purposes of data protection law we are the data controller for the personal data described in this policy. You can contact us at ${site.email} about anything on this page.`,
+            `${site.name} is a career resource website and job board operated from ${site.address}. For the purposes of data protection law we are the data controller for the personal data described in this policy. Data protection questions go to ${site.privacyEmail}; anything else to ${site.email}.`,
           ],
         },
         {

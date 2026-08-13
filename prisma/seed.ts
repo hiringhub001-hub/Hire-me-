@@ -704,6 +704,8 @@ async function main() {
 
   for (const job of jobs) {
     const postedAt = new Date(Date.now() - job.daysAgo * 24 * 60 * 60 * 1000)
+    // 30 days from posting, matching what the post-job flow sets.
+    const expiresAt = new Date(postedAt.getTime() + 30 * 24 * 60 * 60 * 1000)
     const companyId = companyMap.get(job.company)
     if (!companyId) throw new Error(`Unknown company: ${job.company}`)
 
@@ -738,6 +740,7 @@ async function main() {
         status: 'PUBLISHED',
         featured: job.featured ?? false,
         postedAt,
+        expiresAt,
         views: Math.floor(40 + job.daysAgo * 17),
       },
     })

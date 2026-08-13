@@ -6,6 +6,7 @@ import { useFormStatus } from 'react-dom'
 import { signIn, signUp } from '@/features/auth/actions'
 import { idleState } from '@/lib/action-state'
 import { Alert, Field, buttonClass, inputClass } from '@/components/ui'
+import { track } from '@/lib/analytics'
 
 function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
@@ -58,7 +59,14 @@ export function SignUpForm({ defaultRole }: { defaultRole: 'CANDIDATE' | 'EMPLOY
   const [state, formAction] = useActionState(signUp, idleState)
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={formAction}
+      onSubmit={(event) => {
+        const role = new FormData(event.currentTarget).get('role')
+        track(role === 'EMPLOYER' ? 'employer_sign_up' : 'sign_up')
+      }}
+      className="space-y-4"
+    >
       {state.status === 'error' && state.message ? (
         <Alert tone="error">{state.message}</Alert>
       ) : null}

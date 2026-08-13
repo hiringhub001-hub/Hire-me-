@@ -5,6 +5,7 @@ import { useOptimistic, useTransition } from 'react'
 
 import { toggleSavedJob } from '@/features/jobs/actions'
 import { cn } from '@/lib/utils'
+import { track } from '@/lib/analytics'
 
 export function SaveJobButton({
   jobId,
@@ -47,6 +48,7 @@ export function SaveJobButton({
       onClick={() => {
         startTransition(async () => {
           setOptimisticSaved(!optimisticSaved)
+          if (!optimisticSaved) track('job_saved', { job_id: jobId })
           await toggleSavedJob(jobId, pathname)
         })
       }}

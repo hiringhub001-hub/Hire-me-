@@ -11,7 +11,8 @@ import {
   verifyPassword,
   type Role,
 } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, clearFailures, clientIp, recordFailure } from '@/lib/rate-limit'
+import { sendLoginFailureAlert, sendRegistrationEmails } from '@/lib/email'
 import { fail, fieldErrors, type ActionState } from '@/lib/action-state'
 
 const signInSchema = z.object({
@@ -48,8 +49,20 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
   // Same message for unknown email and wrong password so the form cannot be
   // used to enumerate registered addresses.
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    // Tell the operator once a run of failures looks like more than a typo.
+    const { attempts, shouldAlert, windowMinutes } = recordFailure(email)
+    if (shouldAlert) {
+      await sendLoginFailureAlert({
+        email,
+        attempts,
+        windowMinutes,
+        ip: await clientIp(),
+      })
+    }
     return fail('Email or password is incorrect.')
   }
+
+  clearFailures(email)
 
   await createSession({
     userId: user.id,
@@ -116,6 +129,14 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     email: user.email,
     name: user.name,
     role: user.role as Role,
+  })
+
+  // Welcome the user and tell the operator inbox. Never blocks registration.
+  await sendRegistrationEmails({
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    role,
   })
 
   redirect(homeFor(role))

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { getSession } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 import { site } from '@/lib/site'
 import { Container, buttonClass } from '@/components/ui'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -29,6 +30,13 @@ export async function SiteHeader() {
   const session = await getSession()
   const isRecruiter = session?.role === 'EMPLOYER' || session?.role === 'ADMIN'
   const isSeeker = session?.role === 'CANDIDATE'
+  const isAdmin = session?.role === 'ADMIN'
+
+  // Admins get a badge showing how many listings are waiting on them, so the
+  // moderation queue cannot quietly fill up unnoticed.
+  const pendingCount = isAdmin
+    ? await prisma.job.count({ where: { status: 'PENDING' } })
+    : 0
 
   const nav = isRecruiter ? recruiterNav : seekerNav
   const dashboardHref =
@@ -61,6 +69,22 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
+
+          {/* Only an admin session ever renders this. Everyone else has no link
+              to /admin anywhere on the site, and the route redirects them. */}
+          {isAdmin ? (
+            <Link
+              href="/admin"
+              className={`${buttonClass({ variant: 'secondary', size: 'sm' })} gap-1.5`}
+            >
+              Admin
+              {pendingCount > 0 ? (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-xs font-bold text-slate-900">
+                  {pendingCount}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
 
           {session ? (
             <Link href={dashboardHref} className={buttonClass({ variant: 'outline', size: 'sm' })}>

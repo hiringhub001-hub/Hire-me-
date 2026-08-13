@@ -25,7 +25,12 @@ function cdata(value: string): string {
 
 export async function GET(): Promise<Response> {
   const jobs = await prisma.job.findMany({
-    where: { status: 'PUBLISHED', allowInternal: true, source: 'DIRECT' },
+    where: {
+      status: 'PUBLISHED',
+      allowInternal: true,
+      source: 'DIRECT',
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
     orderBy: { postedAt: 'desc' },
     take: 500,
     select: {

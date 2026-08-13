@@ -26,25 +26,23 @@ type Params = Record<string, string | number | boolean | undefined>
 
 declare global {
   interface Window {
-    gtag?: (command: string, event: string, params?: Params) => void
+    gtag?: (command: string, action: string, params?: Params | ConsentParams) => void
     dataLayer?: unknown[]
   }
 }
 
-const CONSENT_KEY = 'cookie-consent'
+type ConsentParams = Record<string, 'granted' | 'denied' | number>
 
-function hasAnalyticsConsent(): boolean {
-  try {
-    return localStorage.getItem(CONSENT_KEY) === 'accepted'
-  } catch {
-    return false
-  }
-}
-
-/** Fire-and-forget. Never throws, never blocks the interaction it describes. */
+/**
+ * Fire-and-forget. Never throws, never blocks the interaction it describes.
+ *
+ * Consent is enforced by Google Consent Mode rather than by refusing to send:
+ * the tag ships with storage denied, so until the visitor accepts, these events
+ * are cookieless pings that write nothing to their device. That keeps the
+ * cookie banner's promise while still giving usable measurement.
+ */
 export function track(event: AnalyticsEvent, params: Params = {}): void {
-  if (typeof window === 'undefined') return
-  if (!window.gtag || !hasAnalyticsConsent()) return
+  if (typeof window === 'undefined' || !window.gtag) return
 
   try {
     window.gtag('event', event, params)

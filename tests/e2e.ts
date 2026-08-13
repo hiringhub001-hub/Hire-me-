@@ -349,6 +349,43 @@ async function run(browser: Browser) {
   const adsTxt = await fetch(`${BASE}/ads.txt`).then((r) => r.text())
   check('ads.txt is served', adsTxt.length > 0)
 
+  /* 10 — Google tag and consent mode ---------------------------------------- */
+  console.log('\n10. Google tag and consent mode')
+  const homeHtml = await fetch(`${BASE}/`).then((r) => r.text())
+  const head = homeHtml.split('</head>')[0] ?? ''
+  const gaConfigured = /NEXT_PUBLIC_GA_ID|G-[A-Z0-9]+/.test(head)
+
+  if (gaConfigured) {
+    check('Google tag is in the served <head>', head.includes('googletagmanager.com/gtag/js'))
+    check(
+      'Consent Mode defaults to denied',
+      head.includes("gtag('consent', 'default'") && head.includes("analytics_storage: 'denied'"),
+    )
+    // Google rejects pages carrying more than one tag; the RSC payload repeats
+    // the URL as data, so count real script elements instead of substrings.
+    const scriptTags = homeHtml.match(
+      /<script[^>]*src="[^"]*googletagmanager\.com\/gtag\/js[^"]*"[^>]*>/g,
+    )
+    check('Exactly one Google tag on the page', (scriptTags?.length ?? 0) === 1, `found ${scriptTags?.length ?? 0}`)
+
+    const consentPage = await browser.newPage()
+    await consentPage.route('**/googletagmanager.com/**', (route) =>
+      route.fulfill({ status: 200, body: '' }),
+    )
+    await consentPage.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' })
+    const readConsent = `(window.dataLayer||[]).map(function(a){return Array.prototype.slice.call(a)}).filter(function(a){return a[0]==='consent'})`
+    const before = (await consentPage.evaluate(readConsent)) as unknown[][]
+    check('No consent grant before the visitor chooses', !before.some((call) => call[1] === 'update'))
+
+    await consentPage.click('button:has-text("Accept")')
+    await consentPage.waitForTimeout(400)
+    const after = (await consentPage.evaluate(readConsent)) as unknown[][]
+    check('Accepting grants consent to Google', after.some((call) => call[1] === 'update'))
+    await consentPage.close()
+  } else {
+    console.log('  SKIP  NEXT_PUBLIC_GA_ID not set in this build')
+  }
+
   /* cleanup ---------------------------------------------------------------- */
   await prisma.emailLog.deleteMany({ where: { entityId: { in: [application!.id, published!.id] } } })
   await prisma.application.deleteMany({ where: { email: seekerEmail } })

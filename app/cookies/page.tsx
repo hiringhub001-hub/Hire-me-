@@ -38,17 +38,19 @@ export default function CookiePolicyPage() {
         {
           heading: 'Analytics cookies',
           body: [
-            'Set only if you accept them. We use Google Analytics 4 and Microsoft Clarity to understand which pages are useful and where people get stuck. IP addresses are anonymised. We do not use analytics data to identify individuals.',
+            'Set only if you accept them. We use Google Analytics 4 to understand which pages are useful and where people get stuck, and we do not use analytics data to identify individuals.',
+            'We use Google Consent Mode. The Google tag loads on every page, but until you accept, it runs with storage denied: it writes no cookies and cannot read any, and the measurement it sends carries no identifier for your device. Accepting switches storage on; choosing essential only leaves it off for the whole visit.',
           ],
           bullets: [
             '_ga and _ga_* — Google Analytics, used to distinguish sessions. Up to 24 months.',
-            '_clck and _clsk — Microsoft Clarity, used for aggregate interaction analysis. Up to 12 months.',
+            '_clck and _clsk — Microsoft Clarity, used for aggregate interaction analysis, and only if Clarity is enabled. Up to 12 months.',
           ],
         },
         {
           heading: 'Advertising cookies',
           body: [
             'Set only if you accept them, and only once advertising is enabled on the site. Advertising is what keeps the service free for job seekers.',
+            'The same Consent Mode signal covers advertising: ad storage, ad user data and ad personalisation all stay denied until you accept.',
             'Google, as a third-party vendor, uses cookies to serve ads on this site. Its use of advertising cookies enables it and its partners to serve ads based on your visit here and to other sites. You can opt out of personalised advertising in Google Ads Settings, and out of third-party vendor cookies at aboutads.info.',
           ],
         },

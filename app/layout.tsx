@@ -12,6 +12,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { BottomNav } from '@/components/bottom-nav'
 import { ThemeScript } from '@/components/theme-toggle'
 import { CookieBanner } from '@/components/cookie-banner'
+import { GoogleTag } from '@/components/google-tag'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -69,6 +70,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+        {/* Google tag first, so it is present in the served HTML for detection
+            and so Consent Mode defaults are set before anything can fire. */}
+        <GoogleTag />
         <ThemeScript />
         {site.adsenseClient ? (
           <meta name="google-adsense-account" content={site.adsenseClient} />
@@ -92,18 +96,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
         {/* Analytics and ads load after the page is interactive so they cannot
             hurt Core Web Vitals. Nothing loads unless the ID is configured. */}
-        {site.gaId ? (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${site.gaId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="ga4" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${site.gaId}',{anonymize_ip:true});`}
-            </Script>
-          </>
-        ) : null}
-
         {site.clarityId ? (
           <Script id="clarity" strategy="afterInteractive">
             {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${site.clarityId}");`}

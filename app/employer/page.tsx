@@ -50,7 +50,7 @@ export default async function EmployerHome() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-400">{stat.label}</p>

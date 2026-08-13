@@ -11,7 +11,7 @@ type Applicant = {
   fullName: string
   email: string
   phone: string | null
-  resumeUrl: string | null
+  cvFileName: string | null
   coverLetter: string | null
   status: string
   createdAt: Date
@@ -69,18 +69,23 @@ export function ApplicantRow({ application }: { application: Applicant }) {
         </div>
       </div>
 
-      {application.resumeUrl ? (
+      {application.cvFileName ? (
         <p className="mt-3 text-sm">
           <a
-            href={application.resumeUrl}
+            href={`/api/applications/${application.id}/cv`}
             target="_blank"
-            rel="noopener noreferrer nofollow"
-            className="text-brand-600 hover:underline"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            View CV →
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+              <path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="break-all">{application.cvFileName}</span>
           </a>
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No CV attached.</p>
+      )}
 
       {application.coverLetter ? (
         <details className="mt-3">

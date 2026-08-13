@@ -1,19 +1,16 @@
 // Hire Me — data model.
 //
-// Provider is SQLite so the project runs with zero external services.
-// To move to PostgreSQL (Neon/Supabase) change the datasource to:
-//   provider = "postgresql"
-//   url      = env("DATABASE_URL")
-// The model definitions below are written to be Postgres-compatible: no
-// SQLite-only types are used, enums are modelled as validated strings so the
-// same schema migrates cleanly in both directions.
+// PostgreSQL, so local development matches production exactly. `npm run db:up`
+// starts one in Docker; in production point DATABASE_URL at Neon or Supabase.
+// Enums are modelled as validated strings, which keeps migrations simple and
+// lets the application layer own the allowed values.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -32,7 +29,14 @@ model User {
   location      String?
   phone         String?
   skills        String? // comma separated, kept denormalised for fast profile reads
-  resumeUrl     String?
+
+  // CV stored as bytes so the app needs no object storage to work. Move to R2
+  // or S3 when average file counts make that worthwhile; the download route is
+  // the only reader, so the swap is contained.
+  cvData     Bytes?
+  cvFileName String?
+  cvMimeType String?
+  cvSize     Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -213,8 +217,14 @@ model Application {
   fullName    String
   email       String
   phone       String?
-  resumeUrl   String?
   coverLetter String?
+
+  // Copied at submission time: the employer keeps the CV that was actually
+  // sent, even if the candidate later replaces the one on their profile.
+  cvData     Bytes?
+  cvFileName String?
+  cvMimeType String?
+  cvSize     Int?
   status      String   @default("SUBMITTED") // SUBMITTED | REVIEWING | SHORTLISTED | REJECTED | HIRED
   notes       String?
   createdAt   DateTime @default(now())

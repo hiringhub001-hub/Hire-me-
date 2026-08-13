@@ -123,7 +123,7 @@ export function ResumeBuilder() {
                 className={inputClass}
               />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Email" htmlFor="r-email">
                 <input
                   id="r-email"
@@ -145,7 +145,7 @@ export function ResumeBuilder() {
                 />
               </Field>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="City and country" htmlFor="r-location" hint="No street address needed.">
                 <input
                   id="r-location"
@@ -214,7 +214,7 @@ export function ResumeBuilder() {
                     </button>
                   ) : null}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field label="Job title" htmlFor={`role-${item.id}`}>
                     <input
                       id={`role-${item.id}`}
@@ -298,7 +298,7 @@ export function ResumeBuilder() {
           <h2 className="font-semibold text-slate-900 dark:text-white">Education</h2>
           <div className="mt-4 space-y-4">
             {state.education.map((item, index) => (
-              <div key={item.id} className="grid gap-3 sm:grid-cols-3">
+              <div key={item.id} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label={`Qualification ${index + 1}`} htmlFor={`qual-${item.id}`}>
                   <input
                     id={`qual-${item.id}`}

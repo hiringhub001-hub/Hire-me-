@@ -29,7 +29,7 @@ export default function ContactPage() {
           intro="A person reads every message. We reply within two working days, and the same day for reports of fraudulent listings."
         />
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
           <Card>
             <ContactForm />
           </Card>

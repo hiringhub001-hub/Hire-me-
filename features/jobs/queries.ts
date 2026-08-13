@@ -58,21 +58,27 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobWhereInput {
 
   if (filters.q) {
     const q = filters.q.trim()
-    // SQLite's LIKE is case-insensitive for ASCII, so `contains` is enough here.
-    // On PostgreSQL add `mode: 'insensitive'` or switch to a tsvector index.
+    // PostgreSQL's LIKE is case-sensitive, so every text match is explicitly
+    // insensitive. Swap this block for a tsvector index or Meilisearch when the
+    // listing count makes ILIKE scans too slow.
     and.push({
       OR: [
-        { title: { contains: q } },
-        { skills: { contains: q } },
-        { description: { contains: q } },
-        { company: { name: { contains: q } } },
+        { title: { contains: q, mode: 'insensitive' } },
+        { skills: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+        { company: { name: { contains: q, mode: 'insensitive' } } },
       ],
     })
   }
 
   if (filters.location) {
     const loc = filters.location.trim()
-    and.push({ OR: [{ city: { contains: loc } }, { country: { contains: loc } }] })
+    and.push({
+      OR: [
+        { city: { contains: loc, mode: 'insensitive' } },
+        { country: { contains: loc, mode: 'insensitive' } },
+      ],
+    })
   }
 
   if (filters.category) where.category = { slug: filters.category }

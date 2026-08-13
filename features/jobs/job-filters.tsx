@@ -84,7 +84,7 @@ export function JobFilters({
             location: String(data.get('location') ?? ''),
           })
         }}
-        className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
+        className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]"
         role="search"
       >
         <div>

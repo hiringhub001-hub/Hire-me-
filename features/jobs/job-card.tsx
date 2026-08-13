@@ -18,13 +18,16 @@ export function SourceBadge({ source, sourceName }: { source: string; sourceName
   )
 }
 
+// `min-w-0` on the article matters: as a grid item its automatic minimum would
+// otherwise come from the nowrap company line, pushing the whole page wider than
+// the screen rather than letting that line truncate.
 export function JobCard({ job }: { job: JobCardData }) {
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency, job.salaryPeriod)
   const skills = csv(job.skills).slice(0, 4)
   const place = job.workMode === 'REMOTE' ? `Remote · ${job.country}` : `${job.city}, ${job.country}`
 
   return (
-    <article className="group relative rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300 hover:shadow-md sm:p-5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700">
+    <article className="group relative min-w-0 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300 hover:shadow-md sm:p-5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700">
       <div className="flex items-start gap-3">
         <div
           className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
@@ -81,7 +84,7 @@ export function JobCard({ job }: { job: JobCardData }) {
 
 export function JobCardList({ jobs }: { jobs: JobCardData[] }) {
   return (
-    <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
       {jobs.map((job) => (
         <JobCard key={job.id} job={job} />
       ))}

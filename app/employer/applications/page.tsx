@@ -31,9 +31,9 @@ export default async function EmployerApplicationsPage({
       ...(q
         ? {
             OR: [
-              { fullName: { contains: q } },
-              { email: { contains: q } },
-              { coverLetter: { contains: q } },
+              { fullName: { contains: q, mode: 'insensitive' as const } },
+              { email: { contains: q, mode: 'insensitive' as const } },
+              { coverLetter: { contains: q, mode: 'insensitive' as const } },
             ],
           }
         : {}),
@@ -44,7 +44,7 @@ export default async function EmployerApplicationsPage({
       fullName: true,
       email: true,
       phone: true,
-      resumeUrl: true,
+      cvFileName: true,
       coverLetter: true,
       status: true,
       createdAt: true,

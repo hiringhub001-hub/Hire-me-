@@ -29,7 +29,7 @@ export default function ForEmployersPage() {
           intro="Post a role directly, or share one you have already advertised on LinkedIn or Indeed. Either way it gets a full page here with our own analysis attached."
         />
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
             {
               step: '1',

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { getSession, logAudit } from '@/lib/auth'
 import { sendApplicationEmails } from '@/lib/email'
+import { readCvUpload } from '@/lib/cv'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { fail, fieldErrors, ok, type ActionState } from '@/lib/action-state'
 
@@ -14,18 +15,11 @@ const applicationSchema = z.object({
   fullName: z.string().trim().min(2, 'Please enter your full name').max(120),
   email: z.string().trim().email('Enter a valid email address').max(200),
   phone: z.string().trim().max(40).optional().or(z.literal('')),
-  resumeUrl: z
-    .string()
-    .trim()
-    .url('Enter a full link starting with https://')
-    .max(500)
-    .optional()
-    .or(z.literal('')),
-  coverLetter: z
-    .string()
-    .trim()
-    .min(40, 'Write at least a couple of sentences — it makes a real difference')
-    .max(5000),
+  // Optional, by design: a required essay stops good candidates from applying
+  // at all, and an empty box is more honest than a padded one.
+  coverLetter: z.string().trim().max(5000).optional().or(z.literal('')),
+  /** Set when a signed-in candidate reuses the CV already on their profile. */
+  useSavedCv: z.string().optional(),
   consent: z.literal('on', {
     errorMap: () => ({ message: 'Please confirm you agree to share your details' }),
   }),
@@ -46,6 +40,9 @@ export async function applyToJob(
   if (!parsed.success) {
     return fail('Please check the highlighted fields.', fieldErrors(parsed.error.issues))
   }
+
+  const upload = await readCvUpload(formData.get('cv'))
+  if (upload.error) return fail(upload.error, { cv: upload.error })
 
   const { jobId, consent: _consent, ...values } = parsed.data
 
@@ -73,6 +70,27 @@ export async function applyToJob(
 
   const session = await getSession()
 
+  // Either a fresh upload or, for a signed-in candidate who asked to reuse it,
+  // a copy of the CV already on their profile.
+  let cv = upload.file
+  if (!cv && session && values.useSavedCv === 'on') {
+    const saved = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { cvData: true, cvFileName: true, cvMimeType: true, cvSize: true },
+    })
+    if (saved?.cvData) {
+      cv = {
+        data: new Uint8Array(saved.cvData),
+        fileName: saved.cvFileName ?? 'cv.pdf',
+        mimeType: saved.cvMimeType ?? 'application/pdf',
+        size: saved.cvSize ?? saved.cvData.byteLength,
+      }
+    }
+  }
+  if (!cv) {
+    return fail('Please attach your CV.', { cv: 'Choose a file from your device' })
+  }
+
   const existing = await prisma.application.findUnique({
     where: { jobId_email: { jobId, email: values.email } },
     select: { id: true },
@@ -88,11 +106,27 @@ export async function applyToJob(
       fullName: values.fullName,
       email: values.email,
       phone: values.phone || null,
-      resumeUrl: values.resumeUrl || null,
-      coverLetter: values.coverLetter,
+      coverLetter: values.coverLetter || null,
+      cvData: cv.data,
+      cvFileName: cv.fileName,
+      cvMimeType: cv.mimeType,
+      cvSize: cv.size,
     },
     select: { id: true },
   })
+
+  // Keep the CV on the profile too, so the next application is one tap.
+  if (session && upload.file) {
+    await prisma.user.update({
+      where: { id: session.userId },
+      data: {
+        cvData: upload.file.data,
+        cvFileName: upload.file.fileName,
+        cvMimeType: upload.file.mimeType,
+        cvSize: upload.file.size,
+      },
+    })
+  }
 
   await logAudit('application.created', 'Job', jobId, { title: job.title })
 
@@ -105,8 +139,8 @@ export async function applyToJob(
     candidateName: values.fullName,
     candidateEmail: values.email,
     candidatePhone: values.phone || null,
-    resumeUrl: values.resumeUrl || null,
-    coverLetter: values.coverLetter,
+    cvFileName: cv.fileName,
+    coverLetter: values.coverLetter || '',
     jobTitle: job.title,
     jobSlug: job.slug,
     companyName: job.company.name,

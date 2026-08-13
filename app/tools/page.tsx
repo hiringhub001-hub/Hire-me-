@@ -49,7 +49,7 @@ export default function ToolsPage() {
           intro="No account needed, no watermark, no export fee. Everything you type stays in your browser — we do not upload or store the contents of these tools."
         />
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {tools.map((tool) => (
             <Card key={tool.href} className="flex flex-col">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">

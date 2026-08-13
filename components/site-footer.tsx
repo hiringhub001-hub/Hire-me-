@@ -71,7 +71,7 @@ export function SiteFooter({ role }: { role: string | null }) {
     <footer className="mt-16 border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
       <Container className="py-12">
         <div
-          className={`grid gap-10 sm:grid-cols-2 ${visibleColumns.length === 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-5'}`}
+          className={`grid grid-cols-1 gap-10 sm:grid-cols-2 ${visibleColumns.length === 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-5'}`}
         >
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">

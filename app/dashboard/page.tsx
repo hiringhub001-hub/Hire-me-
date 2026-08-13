@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const [user, savedCount, applications, recommended] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session.userId },
-      select: { headline: true, location: true, skills: true, resumeUrl: true, phone: true },
+      select: { headline: true, location: true, skills: true, cvFileName: true, phone: true },
     }),
     prisma.savedJob.count({ where: { userId: session.userId } }),
     prisma.application.findMany({
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
     { label: 'Add a professional headline', done: Boolean(user.headline), href: '/dashboard/profile' },
     { label: 'Add your location', done: Boolean(user.location), href: '/dashboard/profile' },
     { label: 'List your skills', done: csv(user.skills).length > 0, href: '/dashboard/profile' },
-    { label: 'Add a link to your CV', done: Boolean(user.resumeUrl), href: '/dashboard/profile' },
+    { label: 'Upload your CV', done: Boolean(user.cvFileName), href: '/dashboard/profile' },
     { label: 'Add a phone number', done: Boolean(user.phone), href: '/dashboard/profile' },
   ]
   const complete = checks.filter((check) => check.done).length
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { label: 'Saved jobs', value: savedCount, href: '/dashboard/saved' },
           { label: 'Applications', value: applications.length, href: '/dashboard/applications' },

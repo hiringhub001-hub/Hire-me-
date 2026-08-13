@@ -62,7 +62,7 @@ export function CoverLetterBuilder() {
       <Card className="space-y-4">
         <h2 className="font-semibold text-slate-900 dark:text-white">Four questions</h2>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Your name" htmlFor="cl-name">
             <input
               id="cl-name"
@@ -82,7 +82,7 @@ export function CoverLetterBuilder() {
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Role you are applying for" htmlFor="cl-role">
             <input
               id="cl-role"

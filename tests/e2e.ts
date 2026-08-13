@@ -9,13 +9,17 @@
  *   4. a job seeker finds it and applies
  *   5. the applicant sees an "Application successful" screen
  *   6. confirmation, recruiter and admin emails are queued
- *   7. the recruiter sees the applicant and can change their status
+ *   7. the recruiter sees the applicant, downloads the CV and sets a status
  *   8. a job seeker is never offered a way to post a job
+ *   9. the CV is a real uploaded file, and only the right people can fetch it
  *
  * Run against a built server:  npx next start -p 3200  then  npm run test:e2e
  */
 import { chromium, type Browser, type Page } from 'playwright'
 import { PrismaClient } from '@prisma/client'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3200'
 const prisma = new PrismaClient()
@@ -41,6 +45,22 @@ async function signIn(page: Page, email: string, password = 'password123') {
   // The redirect is driven by the client router after the server action
   // resolves, so wait on the URL rather than racing the click.
   await page.waitForURL(/\/(dashboard|employer|admin)/, { timeout: 20000 })
+}
+
+/** Writes a minimal but genuinely valid PDF to upload as a CV. */
+function makeCvFile(): string {
+  const pdf = [
+    '%PDF-1.4',
+    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+    '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+    '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] >> endobj',
+    'trailer << /Root 1 0 R >>',
+    '%%EOF',
+  ].join('\n')
+  const dir = mkdtempSync(join(tmpdir(), 'careerhub-cv-'))
+  const path = join(dir, 'Chidi-Nwosu-CV.pdf')
+  writeFileSync(path, pdf, 'latin1')
+  return path
 }
 
 async function run(browser: Browser) {
@@ -153,11 +173,19 @@ async function run(browser: Browser) {
 
   await page.goto(`${BASE}/jobs/${published!.slug}`)
   await page.click('a[href="#apply"]')
-  await page.fill('#coverLetter', 'I have three years handling billing queries for a telecoms reseller, where I cut repeat contacts by a third by rewriting the top ten help centre articles.')
+
+  check('Cover letter is optional', !(await page.locator('#coverLetter').getAttribute('required')))
+  check('CV field is a device file picker', (await page.getAttribute('#cv', 'type')) === 'file')
+
+  // Deliberately leave the cover letter empty: it must not block submission.
+  const cvPath = makeCvFile()
+  await page.setInputFiles('#cv', cvPath)
+  check('Selected file is confirmed on screen', (await page.textContent('body'))?.includes('Chidi-Nwosu-CV.pdf') ?? false)
+
   await page.check('input[name=consent]')
   await page.click('button:has-text("Submit application")')
-  await page.waitForSelector('text=Application successful', { timeout: 15000 })
-  check('Applicant sees the "Application successful" screen', true)
+  await page.waitForSelector('text=Application successful', { timeout: 20000 })
+  check('Applicant sees the "Application successful" screen with no cover letter', true)
 
   const successText = (await page.textContent('body')) ?? ''
   check('Success screen confirms the confirmation email', /confirmation email/i.test(successText))
@@ -169,6 +197,21 @@ async function run(browser: Browser) {
     include: { job: true },
   })
   check('Application saved against the right job', application?.jobId === published!.id)
+
+  check('CV stored as a file, not a link', application?.cvFileName === 'Chidi-Nwosu-CV.pdf')
+  check('CV bytes persisted', (application?.cvSize ?? 0) > 0 && Boolean(application?.cvData))
+  check('CV recorded as a PDF', application?.cvMimeType === 'application/pdf')
+
+  const savedOnProfile = await prisma.user.findFirst({ where: { email: seekerEmail } })
+  check('CV also saved to the profile for reuse', savedOnProfile?.cvFileName === 'Chidi-Nwosu-CV.pdf')
+
+  // The applicant may fetch their own CV back.
+  const ownDownload = await page.request.get(`${BASE}/api/applications/${application!.id}/cv`)
+  check('Applicant can download their own CV', ownDownload.status() === 200)
+  check(
+    'Download serves a PDF',
+    (ownDownload.headers()['content-type'] ?? '').includes('application/pdf'),
+  )
 
   const appEmails = await prisma.emailLog.findMany({
     where: { entity: 'Application', entityId: application?.id },
@@ -216,6 +259,10 @@ async function run(browser: Browser) {
   check('Recruiter sees the applicant name', applicantsText.includes('Chidi Nwosu'))
   check('Recruiter sees the applicant email', applicantsText.includes(seekerEmail))
 
+  check('Recruiter sees the CV filename', applicantsText.includes('Chidi-Nwosu-CV.pdf'))
+  const recruiterDownload = await page.request.get(`${BASE}/api/applications/${application!.id}/cv`)
+  check('Recruiter can download the CV', recruiterDownload.status() === 200)
+
   await page.selectOption(`select#status-${application!.id}`, 'SHORTLISTED')
   await page.waitForTimeout(1500)
   const updated = await prisma.application.findUnique({ where: { id: application!.id } })
@@ -225,6 +272,25 @@ async function run(browser: Browser) {
   const jobsText = (await page.textContent('body')) ?? ''
   check('Recruiter sees their own listing', jobsText.includes(jobTitle))
   check('Share tools offered for promoting off-site', /Share this job on LinkedIn/i.test(jobsText))
+
+  /* 7b — CVs are not public ------------------------------------------------- */
+  console.log('\n7b. CV access control')
+  const anon = await browser.newPage()
+  const anonDownload = await anon.request.get(`${BASE}/api/applications/${application!.id}/cv`)
+  check('Signed-out visitor cannot download a CV', anonDownload.status() === 404)
+
+  // A different, unrelated candidate must not be able to fetch it either.
+  await anon.goto(`${BASE}/signup?role=candidate`)
+  await anon.fill('#name', 'Nosy Person')
+  await anon.fill('#email', `nosy.${stamp}@example.com`)
+  await anon.fill('#password', 'password123')
+  await anon.fill('#confirm', 'password123')
+  await anon.check('input[name=terms]')
+  await anon.click('button[type=submit]')
+  await anon.waitForURL(/\/dashboard/, { timeout: 20000 })
+  const otherDownload = await anon.request.get(`${BASE}/api/applications/${application!.id}/cv`)
+  check('Unrelated candidate cannot download a CV', otherDownload.status() === 404)
+  await anon.close()
 
   /* 8 — outbound feed ------------------------------------------------------- */
   console.log('\n8. Outbound distribution')
@@ -237,7 +303,9 @@ async function run(browser: Browser) {
   await prisma.application.deleteMany({ where: { email: seekerEmail } })
   await prisma.job.deleteMany({ where: { title: jobTitle } })
   await prisma.company.deleteMany({ where: { name: `Test Company ${stamp}` } })
-  await prisma.user.deleteMany({ where: { email: { in: [recruiterEmail, seekerEmail] } } })
+  await prisma.user.deleteMany({
+    where: { email: { in: [recruiterEmail, seekerEmail, `nosy.${stamp}@example.com`] } },
+  })
   await page.close()
 }
 

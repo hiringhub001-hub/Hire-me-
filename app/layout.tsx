@@ -41,6 +41,12 @@ export const metadata: Metadata = {
   creator: site.name,
   publisher: site.name,
   formatDetection: { telephone: false },
+  // Google Search Console HTML-tag verification. Declared here rather than as a
+  // hand-written <meta> so Next owns the tag and cannot emit a duplicate: this
+  // is the root layout, and child metadata merges rather than repeating it.
+  verification: {
+    google: site.googleSiteVerification,
+  },
   alternates: {
     canonical: '/',
     types: { 'application/rss+xml': `${site.url}/rss.xml` },

@@ -350,9 +350,22 @@ async function run(browser: Browser) {
   check('ads.txt is served', adsTxt.length > 0)
 
   /* 10 — Google tag and consent mode ---------------------------------------- */
-  console.log('\n10. Google tag and consent mode')
+  console.log('\n10. Google tag, Search Console and consent mode')
   const homeHtml = await fetch(`${BASE}/`).then((r) => r.text())
   const head = homeHtml.split('</head>')[0] ?? ''
+
+  // Search Console un-verifies the property if the tag disappears, so guard it.
+  const verificationTags = homeHtml.match(/<meta name="google-site-verification"[^>]*>/g) ?? []
+  check('Search Console verification tag is in <head>', /google-site-verification/.test(head))
+  check(
+    'Exactly one verification tag',
+    verificationTags.length === 1,
+    `found ${verificationTags.length}`,
+  )
+  check(
+    'Verification token matches the one Google issued',
+    verificationTags[0]?.includes('8euaUVHVkIhg5YaLtTEMo9vbjBiV5n54-PuYmRZNww4') ?? false,
+  )
   const gaConfigured = /NEXT_PUBLIC_GA_ID|G-[A-Z0-9]+/.test(head)
 
   if (gaConfigured) {

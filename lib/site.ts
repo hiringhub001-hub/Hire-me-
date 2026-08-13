@@ -45,6 +45,18 @@ export const site = {
   adsenseClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '',
   gaId: process.env.NEXT_PUBLIC_GA_ID ?? '',
   clarityId: process.env.NEXT_PUBLIC_CLARITY_ID ?? '',
+  /**
+   * Google Search Console HTML-tag verification token.
+   *
+   * Rendered by the root layout's metadata as
+   * <meta name="google-site-verification" …>. Keep it in place permanently:
+   * Google re-checks periodically and removing the tag un-verifies the
+   * property, which also drops the Search Console data feeding your sitemap
+   * and indexing reports.
+   */
+  googleSiteVerification:
+    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ??
+    '8euaUVHVkIhg5YaLtTEMo9vbjBiV5n54-PuYmRZNww4',
 } as const
 
 export const partnerBoards = {

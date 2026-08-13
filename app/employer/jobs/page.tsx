@@ -84,6 +84,18 @@ export default async function EmployerJobsPage() {
                     <p className="mt-1 text-xs text-slate-500">
                       {job.views} views · {job._count.applications} applications
                     </p>
+                    {job.status === 'PENDING' ? (
+                      <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                        <strong>Not live yet.</strong> An admin reviews every listing before it
+                        appears on the site. You will get an email when it publishes.
+                      </p>
+                    ) : null}
+                    {job.status === 'REJECTED' ? (
+                      <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-900 dark:bg-red-950/40 dark:text-red-200">
+                        <strong>Not approved.</strong> Contact us if you would like to know why and
+                        resubmit.
+                      </p>
+                    ) : null}
                   </div>
 
                   {job.status !== 'CLOSED' ? (

@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 
 import { applyToJob } from '@/features/jobs/actions'
 import { idleState } from '@/lib/action-state'
 import { CV_ACCEPT, MAX_CV_BYTES, formatBytes } from '@/lib/cv'
+import { track } from '@/lib/analytics'
 import { Alert, Field, buttonClass, inputClass } from '@/components/ui'
 
 function SubmitButton() {
@@ -34,6 +35,14 @@ export function ApplyForm({
   const [useSaved, setUseSaved] = useState(Boolean(savedCv))
   const [picked, setPicked] = useState<{ name: string; size: number } | null>(null)
   const [tooBig, setTooBig] = useState(false)
+
+  // Reported from an effect, not during render: firing a side effect while
+  // rendering double-counts under StrictMode and concurrent rendering.
+  useEffect(() => {
+    if (state.status === 'success') {
+      track('apply_submitted', { job_id: jobId, job_title: jobTitle })
+    }
+  }, [state.status, jobId, jobTitle])
 
   // Full-width confirmation rather than a small inline notice: this is the
   // moment the candidate needs to be certain the application actually landed.

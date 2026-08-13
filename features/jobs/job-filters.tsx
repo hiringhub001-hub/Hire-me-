@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
 import { cn } from '@/lib/utils'
+import { track } from '@/lib/analytics'
 import { inputClass } from '@/components/ui'
 
 type Option = { value: string; label: string }
@@ -79,10 +80,10 @@ export function JobFilters({
         onSubmit={(event) => {
           event.preventDefault()
           const data = new FormData(event.currentTarget)
-          update({
-            q: String(data.get('q') ?? ''),
-            location: String(data.get('location') ?? ''),
-          })
+          const q = String(data.get('q') ?? '')
+          const location = String(data.get('location') ?? '')
+          track('job_search', { search_term: q, location, results: total })
+          update({ q, location })
         }}
         className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]"
         role="search"

@@ -9,7 +9,11 @@ export const revalidate = 3600
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [jobs, companies, posts, categories] = await Promise.all([
     prisma.job.findMany({
-      where: { status: 'PUBLISHED' },
+      // Expired listings are noindex, so they stay out of the sitemap too.
+      where: {
+        status: 'PUBLISHED',
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
       select: { slug: true, updatedAt: true },
     }),
     prisma.company.findMany({

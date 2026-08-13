@@ -69,7 +69,19 @@ export function MobileMenu({ signedIn, role }: { signedIn: boolean; role: string
 
   const isRecruiter = role === 'EMPLOYER' || role === 'ADMIN'
   const isSeeker = role === 'CANDIDATE'
-  const menu = isRecruiter ? recruiterMenu : seekerMenu
+  const isAdmin = role === 'ADMIN'
+  // Admin entries are added only for an admin session; nobody else is shown a
+  // link to the moderation area.
+  const menu = isAdmin
+    ? [
+        { href: '/admin', label: 'Admin dashboard' },
+        { href: '/admin/jobs', label: 'Moderate jobs' },
+        { href: '/admin/users', label: 'Manage users' },
+        ...recruiterMenu,
+      ]
+    : isRecruiter
+      ? recruiterMenu
+      : seekerMenu
   const dashboardHref =
     role === 'ADMIN' ? '/admin' : role === 'EMPLOYER' ? '/employer' : '/dashboard'
 

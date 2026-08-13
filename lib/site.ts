@@ -21,11 +21,18 @@ export const site = {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (process.env.NODE_ENV === 'production' ? 'https://careerhub.com.ng' : 'http://localhost:3000'),
   locale: 'en_NG',
+  /** Published contact addresses. Set these up as forwarders on the domain. */
   email: 'hello@careerhub.com.ng',
   supportEmail: 'support@careerhub.com.ng',
+  jobsEmail: 'jobs@careerhub.com.ng',
+  privacyEmail: 'privacy@careerhub.com.ng',
   editorialEmail: 'editorial@careerhub.com.ng',
-  /** Every application and every new job posting is copied to this address. */
-  adminEmail: process.env.ADMIN_EMAIL ?? 'admin@careerhub.com.ng',
+  /**
+   * Operator inbox. Receives a copy of everything that happens on the site:
+   * new job postings awaiting review, every application, new registrations and
+   * repeated failed sign-ins. Override with ADMIN_EMAIL.
+   */
+  adminEmail: process.env.ADMIN_EMAIL ?? 'hiringhub001@gmail.com',
   /** From address on outbound mail. Must be a domain verified with Resend. */
   fromEmail: process.env.EMAIL_FROM ?? 'CareerHub <notifications@careerhub.com.ng>',
   address: 'Remote-first — registered office details available on request',

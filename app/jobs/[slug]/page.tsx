@@ -54,9 +54,13 @@ export async function generateMetadata({
   if (!job) return buildMetadata({ title: 'Job not found', description: '', path: `/jobs/${slug}`, noIndex: true })
 
   const place = job.workMode === 'REMOTE' ? `Remote, ${job.country}` : `${job.city}, ${job.country}`
+  const expired = Boolean(job.expiresAt && job.expiresAt.getTime() < Date.now())
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency, job.salaryPeriod)
 
+  const isExpired = Boolean(job.expiresAt && job.expiresAt.getTime() < Date.now())
+
   return buildMetadata({
+    noIndex: isExpired,
     title: `${job.title} at ${job.company.name} — ${place}`,
     description: `${job.title} at ${job.company.name}, ${place}${salary ? `, ${salary}` : ''}. Read the required skills, salary context, interview preparation and career path before you apply.`,
     path: `/jobs/${job.slug}`,
@@ -94,6 +98,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
     ? job.faqs.map((faq) => ({ question: faq.question, answer: faq.answer }))
     : defaultFaqs(job)
 
+  const expired = Boolean(job.expiresAt && job.expiresAt.getTime() < Date.now())
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency, job.salaryPeriod)
   const place = job.workMode === 'REMOTE' ? `Remote — ${job.country}` : `${job.city}, ${job.country}`
   const path = `/jobs/${job.slug}`
@@ -117,6 +122,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
       'Requirements: ' + lines(job.requirements).join('; '),
     ].join('\n\n'),
     datePosted: job.postedAt.toISOString(),
+    // Google uses validThrough to drop the posting from Jobs automatically.
     ...(job.expiresAt ? { validThrough: job.expiresAt.toISOString() } : {}),
     employmentType: job.employment,
     directApply: job.source === 'DIRECT' && job.allowInternal,
@@ -213,9 +219,25 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
                 ))}
               </dl>
 
+              {expired ? (
+                <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                  <strong>This job has closed.</strong> The listing expired on{' '}
+                  {formatDate(job.expiresAt!)} and is no longer accepting applications. The guidance
+                  below still applies to similar roles — there are current openings at the bottom of
+                  this page.
+                </div>
+              ) : null}
+
               {/* Apply actions. No advertisement is permitted in this block. */}
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                {job.externalUrl ? (
+                {expired ? (
+                  <a
+                    href="/jobs"
+                    className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-brand-600 px-6 font-semibold text-white transition hover:bg-brand-700"
+                  >
+                    Browse current jobs
+                  </a>
+                ) : job.externalUrl ? (
                   <a
                     href={job.externalUrl}
                     target="_blank"
@@ -491,7 +513,19 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             </section>
 
             {/* Apply form ------------------------------------------------ */}
-            {job.allowInternal ? (
+            {expired ? (
+              <section id="apply" className="mt-12 scroll-mt-20">
+                <Card>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    Applications are closed
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                    This listing expired on {formatDate(job.expiresAt!)}. Similar roles are listed
+                    below, and a free job alert will email you when a matching one is posted.
+                  </p>
+                </Card>
+              </section>
+            ) : job.allowInternal ? (
               <section id="apply" className="mt-12 scroll-mt-20" aria-labelledby="apply-heading">
                 <Card>
                   <h2 id="apply-heading" className="text-xl font-bold text-slate-900 dark:text-white">

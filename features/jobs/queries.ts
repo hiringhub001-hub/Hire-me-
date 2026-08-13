@@ -52,10 +52,20 @@ const jobCardSelect = {
 
 export type JobCardData = Prisma.JobGetPayload<{ select: typeof jobCardSelect }>
 
+/**
+ * Live means published and not past its expiry date. Google requires expired
+ * postings to stop appearing, and candidates should never apply to a dead role.
+ */
+export const liveJobWhere: Prisma.JobWhereInput = {
+  status: 'PUBLISHED',
+  OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+}
+
 export function buildJobWhere(filters: JobFilters): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = { status: 'PUBLISHED' }
-  const and: Prisma.JobWhereInput[] = []
-
+  const and: Prisma.JobWhereInput[] = [
+    { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+  ]
   if (filters.q) {
     const q = filters.q.trim()
     // PostgreSQL's LIKE is case-sensitive, so every text match is explicitly
@@ -124,6 +134,8 @@ export async function searchJobs(filters: JobFilters) {
 
 export async function getJobBySlug(slug: string) {
   return prisma.job.findFirst({
+    // Expired listings still resolve here so the page can say the role has
+    // closed rather than 404ing on a link somebody shared last month.
     where: { slug, status: 'PUBLISHED' },
     include: {
       company: { include: { locations: true } },
@@ -142,7 +154,7 @@ export async function getSimilarJobs(job: {
 }) {
   const sameCategory = await prisma.job.findMany({
     where: {
-      status: 'PUBLISHED',
+      ...liveJobWhere,
       id: { not: job.id },
       ...(job.categoryId ? { categoryId: job.categoryId } : {}),
     },
@@ -155,7 +167,7 @@ export async function getSimilarJobs(job: {
 
   const sameCity = await prisma.job.findMany({
     where: {
-      status: 'PUBLISHED',
+      ...liveJobWhere,
       id: { not: job.id },
       city: job.city,
       NOT: { id: { in: sameCategory.map((item) => item.id) } },
@@ -170,7 +182,7 @@ export async function getSimilarJobs(job: {
 
 export async function getFeaturedJobs(take = 6) {
   return prisma.job.findMany({
-    where: { status: 'PUBLISHED' },
+    where: liveJobWhere,
     select: jobCardSelect,
     orderBy: [{ featured: 'desc' }, { postedAt: 'desc' }],
     take,
@@ -185,18 +197,18 @@ export async function getJobFacets() {
         name: true,
         slug: true,
         description: true,
-        _count: { select: { jobs: { where: { status: 'PUBLISHED' } } } },
+        _count: { select: { jobs: { where: liveJobWhere } } },
       },
     }),
     prisma.job.groupBy({
       by: ['country'],
-      where: { status: 'PUBLISHED' },
+      where: liveJobWhere,
       _count: { country: true },
       orderBy: { _count: { country: 'desc' } },
       take: 12,
     }),
-    prisma.job.count({ where: { status: 'PUBLISHED' } }),
-    prisma.job.count({ where: { status: 'PUBLISHED', workMode: 'REMOTE' } }),
+    prisma.job.count({ where: liveJobWhere }),
+    prisma.job.count({ where: { ...liveJobWhere, workMode: 'REMOTE' } }),
   ])
 
   return { categories, countries, total, remote }

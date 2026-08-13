@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+import { track } from '@/lib/analytics'
+
 export function HomeSearch() {
   const router = useRouter()
   const [pending, setPending] = useState(false)
@@ -19,6 +21,7 @@ export function HomeSearch() {
         const location = String(data.get('location') ?? '').trim()
         if (q) params.set('q', q)
         if (location) params.set('location', location)
+        track('job_search', { search_term: q, location })
         router.push(`/jobs${params.toString() ? `?${params}` : ''}`)
       }}
       className="mx-auto flex max-w-2xl flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row dark:border-slate-700 dark:bg-slate-900"

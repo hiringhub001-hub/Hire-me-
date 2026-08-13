@@ -26,6 +26,10 @@ export type EmailTemplate =
   | 'application_admin'
   | 'job_posted_employer'
   | 'job_posted_admin'
+  | 'user_registered_admin'
+  | 'login_failures_admin'
+  | 'welcome_candidate'
+  | 'welcome_employer'
 
 type SendInput = {
   to: string
@@ -335,4 +339,100 @@ export async function sendJobPostedEmails(context: JobPostedContext): Promise<vo
       entityId: context.jobId,
     }),
   ])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Account notifications                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Welcomes a new user and tells the operator inbox about the registration.
+ * Both are best-effort; sign-up itself never fails because email did.
+ */
+export async function sendRegistrationEmails(context: {
+  userId: string
+  name: string
+  email: string
+  role: 'CANDIDATE' | 'EMPLOYER'
+}): Promise<void> {
+  const isRecruiter = context.role === 'EMPLOYER'
+
+  await Promise.allSettled([
+    sendEmail({
+      to: context.email,
+      subject: isRecruiter
+        ? `Your ${site.name} recruiter account is ready`
+        : `Welcome to ${site.name}`,
+      heading: isRecruiter ? 'Your recruiter account is ready' : 'Welcome to CareerHub',
+      body: isRecruiter
+        ? [
+            `Hello ${context.name.split(' ')[0] ?? context.name},`,
+            'You can post a vacancy now. It takes about ten minutes, and you can either take applications here or point candidates at a listing you already run on LinkedIn or Indeed.',
+            'Every listing is checked by a person before it goes live — usually within a few hours on working days. We will email you the moment it publishes, and again each time somebody applies.',
+          ]
+        : [
+            `Hello ${context.name.split(' ')[0] ?? context.name},`,
+            'Your account is ready. You can save jobs, track every application in one place, and use the CV builder, cover letter builder and job match tool — all free, with no premium tier.',
+            'Upload your CV once on your profile and it will be attached automatically each time you apply.',
+          ],
+      cta: isRecruiter
+        ? { label: 'Post your first job', href: absoluteUrl('/employer/post-job') }
+        : { label: 'Browse jobs', href: absoluteUrl('/jobs') },
+      footnote:
+        'CareerHub is free for job seekers. We will never ask you to pay to apply for a job, and neither will a legitimate employer.',
+      template: isRecruiter ? 'welcome_employer' : 'welcome_candidate',
+      entity: 'User',
+      entityId: context.userId,
+    }),
+
+    sendEmail({
+      to: site.adminEmail,
+      subject: `[Admin] New ${isRecruiter ? 'recruiter' : 'job seeker'} — ${context.email}`,
+      heading: `New ${isRecruiter ? 'recruiter' : 'job seeker'} registration`,
+      body: [`${context.name} (${context.email}) created a ${context.role} account.`],
+      details: [
+        { label: 'Name', value: context.name },
+        { label: 'Email', value: context.email },
+        { label: 'Account type', value: context.role },
+      ],
+      cta: { label: 'Open admin dashboard', href: absoluteUrl('/admin/users') },
+      template: 'user_registered_admin',
+      entity: 'User',
+      entityId: context.userId,
+    }),
+  ])
+}
+
+/**
+ * Alerts the operator inbox to repeated failed sign-ins for one address.
+ *
+ * Deliberately not sent on every failure: a single mistyped password is noise,
+ * and emailing each one would both flood the inbox and hand an attacker a way
+ * to generate mail. The caller only invokes this once a threshold is crossed.
+ */
+export async function sendLoginFailureAlert(context: {
+  email: string
+  attempts: number
+  windowMinutes: number
+  ip: string
+}): Promise<void> {
+  await sendEmail({
+    to: site.adminEmail,
+    subject: `[Admin] ${context.attempts} failed sign-in attempts — ${context.email}`,
+    heading: 'Repeated failed sign-in attempts',
+    body: [
+      `There have been ${context.attempts} failed sign-in attempts for ${context.email} in the last ${context.windowMinutes} minutes.`,
+      'This is usually somebody mistyping their own password. Treat it as suspicious if the address is an admin account, or if the same source is trying many different addresses.',
+      'Sign-ins are rate limited per IP, so an automated attempt will already be being throttled.',
+    ],
+    details: [
+      { label: 'Account', value: context.email },
+      { label: 'Attempts', value: String(context.attempts) },
+      { label: 'Source IP', value: context.ip },
+    ],
+    cta: { label: 'Review users', href: absoluteUrl('/admin/users') },
+    template: 'login_failures_admin',
+    entity: 'User',
+    entityId: context.email,
+  })
 }

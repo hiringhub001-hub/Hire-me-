@@ -17,7 +17,10 @@ export const metadata: Metadata = buildMetadata({
 export default async function SitemapPage() {
   const [jobs, companies, posts, categories] = await Promise.all([
     prisma.job.findMany({
-      where: { status: 'PUBLISHED' },
+      where: {
+        status: 'PUBLISHED',
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
       orderBy: { postedAt: 'desc' },
       select: { slug: true, title: true, company: { select: { name: true } } },
     }),

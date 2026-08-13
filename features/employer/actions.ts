@@ -148,8 +148,16 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
       externalUrl: values.externalUrl || null,
       allowInternal: values.source === 'DIRECT' ? true : values.allowInternal === 'on',
       // Everything is reviewed before publication. This is the main control
-      // that keeps low-quality and fraudulent listings off the public site.
-      status: session.role === 'ADMIN' ? 'PUBLISHED' : 'PENDING',
+      // that keeps low-quality and fraudulent listings off the public site, and
+      // it is part of what an AdSense reviewer is assessing. Set
+      // AUTO_PUBLISH_JOBS=true to skip the queue while running the site solo.
+      status:
+        session.role === 'ADMIN' || process.env.AUTO_PUBLISH_JOBS === 'true'
+          ? 'PUBLISHED'
+          : 'PENDING',
+      // Listings expire after 30 days unless renewed. Google requires stale
+      // postings to be removed, and candidates should not apply to dead roles.
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   })
 
@@ -175,9 +183,9 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
   revalidatePath('/feeds/jobs.xml')
 
   return ok(
-    session.role === 'ADMIN'
-      ? 'Job published and live on the site.'
-      : `Job submitted. We review listings before they go live — usually within a few hours — and we have emailed a confirmation to ${values.contactEmail}.`,
+    job.status === 'PUBLISHED'
+      ? 'Job published — it is live on the site now and candidates can apply.'
+      : `Job received. It is queued for review and is NOT live yet — an admin approves listings before they appear, usually within a few hours. We have emailed a confirmation to ${values.contactEmail}, and again when it publishes.`,
   )
 }
 

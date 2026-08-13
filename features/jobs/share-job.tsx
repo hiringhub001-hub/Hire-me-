@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 
+import { track } from '@/lib/analytics'
+
 /**
  * Outbound distribution.
  *
@@ -91,6 +93,7 @@ ${tagged('linkedin')}
           <a
             key={channel.key}
             href={channel.href(tagged(channel.key), text)}
+            onClick={() => track('job_shared', { channel: channel.key, job_title: title })}
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex h-10 items-center rounded-xl px-3 text-sm font-semibold text-white transition ${channel.className}`}

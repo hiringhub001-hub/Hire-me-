@@ -52,3 +52,49 @@ export async function checkRateLimit(
   const ip = await clientIp()
   return hit(`${action}:${ip}`, limit, windowMs)
 }
+
+/* -------------------------------------------------------------------------- */
+/* Failed sign-in tracking                                                     */
+/* -------------------------------------------------------------------------- */
+
+const FAILURE_WINDOW_MS = 15 * 60_000
+const ALERT_AT_ATTEMPTS = 5
+
+const failures = new Map<string, { count: number; resetAt: number }>()
+
+/**
+ * Records a failed sign-in for an address and reports whether the operator
+ * should be alerted.
+ *
+ * Alerts fire once per window, on the attempt that crosses the threshold, so a
+ * sustained attack produces one email every 15 minutes rather than hundreds.
+ * Like the limiter above this is per-instance; move it to Redis alongside
+ * `hit` when running more than one.
+ */
+export function recordFailure(email: string): {
+  attempts: number
+  shouldAlert: boolean
+  windowMinutes: number
+} {
+  const key = email.toLowerCase()
+  const now = Date.now()
+  const entry = failures.get(key)
+
+  if (!entry || entry.resetAt < now) {
+    failures.set(key, { count: 1, resetAt: now + FAILURE_WINDOW_MS })
+    return { attempts: 1, shouldAlert: false, windowMinutes: FAILURE_WINDOW_MS / 60_000 }
+  }
+
+  entry.count += 1
+  return {
+    attempts: entry.count,
+    // Only on the crossing attempt, not on every failure beyond it.
+    shouldAlert: entry.count === ALERT_AT_ATTEMPTS,
+    windowMinutes: FAILURE_WINDOW_MS / 60_000,
+  }
+}
+
+/** Clears the failure counter after a successful sign-in. */
+export function clearFailures(email: string): void {
+  failures.delete(email.toLowerCase())
+}

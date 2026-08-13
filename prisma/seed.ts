@@ -664,6 +664,7 @@ async function main() {
       headline: 'Frontend developer — React, TypeScript',
       location: 'Manchester, United Kingdom',
       skills: 'React, TypeScript, CSS, Testing',
+      phone: '+44 7700 900123',
     },
   })
 

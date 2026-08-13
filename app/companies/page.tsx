@@ -46,7 +46,7 @@ export default async function CompaniesPage() {
           intro="Every profile includes an independent overview of how the company works, its stated benefits, employee reviews where we have them, and all of its open roles. We write the overviews ourselves — they are not marketing copy supplied by the employer."
         />
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {companies.map((company) => (
             <Card key={company.slug} className="flex flex-col">
               <div className="flex items-start gap-3">

@@ -13,11 +13,17 @@ import { formatSalary, lines } from '@/lib/utils'
 export const revalidate = 3600
 
 export async function generateStaticParams() {
-  const companies = await prisma.company.findMany({
-    where: { approved: true },
-    select: { slug: true },
-  })
-  return companies.map((company) => ({ slug: company.slug }))
+  try {
+    const companies = await prisma.company.findMany({
+      where: { approved: true },
+      select: { slug: true },
+    })
+    return companies.map((company) => ({ slug: company.slug }))
+  } catch {
+    // Database unavailable at build time: render companies on demand instead
+    // of failing the deploy.
+    return []
+  }
 }
 
 async function loadCompany(slug: string) {

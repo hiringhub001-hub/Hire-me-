@@ -126,7 +126,7 @@ export default async function SitemapPage() {
           intro="Every page on the site. There is also an XML sitemap at /sitemap.xml for search engines and an RSS feed at /rss.xml."
         />
 
-        <div className="grid gap-10 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
           {sections.map((section) => (
             <section key={section.title}>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">{section.title}</h2>

@@ -24,7 +24,8 @@ export default async function ProfilePage() {
       location: true,
       phone: true,
       skills: true,
-      resumeUrl: true,
+      cvFileName: true,
+      cvSize: true,
     },
   })
 
@@ -45,8 +46,10 @@ export default async function ProfilePage() {
             location: user.location ?? '',
             phone: user.phone ?? '',
             skills: user.skills ?? '',
-            resumeUrl: user.resumeUrl ?? '',
           }}
+          savedCv={
+            user.cvFileName ? { fileName: user.cvFileName, size: user.cvSize ?? 0 } : null
+          }
         />
       </Card>
     </div>

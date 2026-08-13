@@ -10,7 +10,16 @@ export const site = {
   tagline: 'Jobs, career guides and tools that actually help you get hired',
   description:
     'CareerHub is a career resource centre. Search verified jobs, apply in one place, and use free guides, salary data and resume tools written by working recruiters.',
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  /**
+   * Canonical origin. Everything user-visible derives from this: metadata,
+   * canonicals, Open Graph, JSON-LD, the sitemap, the RSS and job feeds, and
+   * every link in an outgoing email. Set NEXT_PUBLIC_SITE_URL in production;
+   * the live domain is the fallback so a missing variable cannot silently
+   * publish localhost URLs into search results.
+   */
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.NODE_ENV === 'production' ? 'https://careerhub.com.ng' : 'http://localhost:3000'),
   locale: 'en_NG',
   email: 'hello@careerhub.com.ng',
   supportEmail: 'support@careerhub.com.ng',

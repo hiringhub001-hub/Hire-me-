@@ -90,7 +90,7 @@ export async function ContentIndexPage({ kind }: { kind: PostKind }) {
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
             <Card key={post.slug} className="flex flex-col">
               <Badge tone="brand" className="w-fit">

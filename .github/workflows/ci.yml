@@ -6,7 +6,7 @@ on:
   pull_request:
 
 env:
-  DATABASE_URL: file:./ci.db
+  DATABASE_URL: postgresql://careerhub:careerhub@localhost:5432/careerhub?schema=public
   AUTH_SECRET: ci-secret-value-at-least-32-characters-long
   NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
@@ -14,6 +14,19 @@ jobs:
   quality:
     name: Typecheck, lint and build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: careerhub
+          POSTGRES_PASSWORD: careerhub
+          POSTGRES_DB: careerhub
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,16 +35,30 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npx prisma generate
-      - run: npx prisma db push --skip-generate
+      - run: npx prisma migrate deploy
       - run: npm run db:seed
       - run: npm run typecheck
       - run: npm run lint
       - run: npx next build
 
-  e2e:
-    name: End-to-end journey
+  tests:
+    name: Journey and layout tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: careerhub
+          POSTGRES_PASSWORD: careerhub
+          POSTGRES_DB: careerhub
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      E2E_BASE_URL: http://localhost:3200
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,8 +68,7 @@ jobs:
 
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx prisma generate
-      - run: npx prisma db push --skip-generate
+      - run: npx prisma migrate deploy
       - run: npm run db:seed
       - run: npx next build
 
@@ -57,7 +83,5 @@ jobs:
           done
           echo "Server did not start in time" && exit 1
 
-      - name: Run journey test
-        run: npm run test:e2e
-        env:
-          E2E_BASE_URL: http://localhost:3200
+      - run: npm run test:e2e
+      - run: npm run test:layout

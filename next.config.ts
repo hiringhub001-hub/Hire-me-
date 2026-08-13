@@ -2,6 +2,13 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverActions: {
+      // CV uploads travel through a server action, and the default cap is 1MB.
+      // Keep this in step with MAX_CV_BYTES in lib/cv.ts.
+      bodySizeLimit: '6mb',
+    },
+  },
   poweredByHeader: false,
   compress: true,
   images: {

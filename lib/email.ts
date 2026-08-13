@@ -171,7 +171,7 @@ type ApplicationContext = {
   candidateName: string
   candidateEmail: string
   candidatePhone?: string | null
-  resumeUrl?: string | null
+  cvFileName?: string | null
   coverLetter: string
   jobTitle: string
   jobSlug: string
@@ -224,7 +224,9 @@ export async function sendApplicationEmails(context: ApplicationContext): Promis
       body: [
         `${context.candidateName} applied for ${context.jobTitle} at ${context.companyName}.`,
         `Candidate email: ${context.candidateEmail}${context.candidatePhone ? ` · Phone: ${context.candidatePhone}` : ''}`,
-        context.resumeUrl ? `CV: ${context.resumeUrl}` : 'No CV link supplied.',
+        context.cvFileName
+          ? `CV attached: ${context.cvFileName} — open it from the application in the dashboard.`
+          : 'No CV attached.',
       ],
       details: [...details, { label: 'Application ID', value: context.applicationId }],
       cta: { label: 'Open job page', href: jobUrl },
@@ -245,11 +247,15 @@ export async function sendApplicationEmails(context: ApplicationContext): Promis
           `Hello${context.employerName ? ` ${context.employerName.split(' ')[0]}` : ''},`,
           `You have a new application for ${context.jobTitle} at ${context.companyName}.`,
           `Contact: ${context.candidateEmail}${context.candidatePhone ? ` · ${context.candidatePhone}` : ''}`,
-          context.resumeUrl ? `CV: ${context.resumeUrl}` : 'The candidate did not attach a CV link.',
-          `Their note: "${context.coverLetter.slice(0, 400)}${context.coverLetter.length > 400 ? '…' : ''}"`,
+          context.cvFileName
+            ? `Their CV (${context.cvFileName}) is attached to the application — download it from your dashboard.`
+            : 'The candidate did not attach a CV.',
+          context.coverLetter
+            ? `Their note: "${context.coverLetter.slice(0, 400)}${context.coverLetter.length > 400 ? '…' : ''}"`
+            : 'They did not add a covering note.',
         ],
         details,
-        cta: { label: 'Review in your dashboard', href: absoluteUrl('/employer/applications') },
+        cta: { label: 'Review and download the CV', href: absoluteUrl('/employer/applications') },
         footnote:
           'Candidates see the status you set in your dashboard, so updating it saves you chasing emails. Replying to everyone — even a rejection — is the single thing candidates remember about an employer.',
         template: 'application_employer',

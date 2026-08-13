@@ -30,7 +30,7 @@ export function ContactForm() {
         <Alert tone="error">{state.message}</Alert>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Your name" htmlFor="name" error={state.errors?.name}>
           <input id="name" name="name" required autoComplete="name" className={inputClass} />
         </Field>
@@ -92,7 +92,7 @@ export function JobAlertForm({ defaultEmail }: { defaultEmail?: string }) {
         />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           label="Keywords"
           htmlFor="alert-keywords"

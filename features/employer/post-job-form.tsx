@@ -103,7 +103,7 @@ export function PostJobForm({
       <fieldset className="space-y-4">
         <legend className="text-lg font-bold text-slate-900 dark:text-white">Your company</legend>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Company name" htmlFor="companyName" error={state.errors?.companyName}>
             <input
               id="companyName"
@@ -173,7 +173,7 @@ export function PostJobForm({
           />
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="City" htmlFor="city" error={state.errors?.city}>
             <input id="city" name="city" required placeholder="or Remote" className={inputClass} />
           </Field>
@@ -182,7 +182,7 @@ export function PostJobForm({
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Location type" htmlFor="workMode">
             <select id="workMode" name="workMode" className={selectClass} defaultValue="ONSITE">
               <option value="ONSITE">On-site</option>
@@ -226,7 +226,7 @@ export function PostJobForm({
           </select>
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <Field label="Salary from" htmlFor="salaryMin" error={state.errors?.salaryMin}>
             <input
               id="salaryMin"

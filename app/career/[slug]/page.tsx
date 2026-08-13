@@ -6,11 +6,16 @@ import { ContentArticlePage, buildArticleMetadata } from '@/features/content/pag
 export const revalidate = 3600
 
 export async function generateStaticParams() {
-  const posts = await prisma.post.findMany({
-    where: { kind: 'CAREER', published: true },
-    select: { slug: true },
-  })
-  return posts.map((post) => ({ slug: post.slug }))
+  try {
+    const posts = await prisma.post.findMany({
+      where: { kind: 'CAREER', published: true },
+      select: { slug: true },
+    })
+    return posts.map((post) => ({ slug: post.slug }))
+  } catch {
+    // Database unavailable at build time: render on demand instead.
+    return []
+  }
 }
 
 export async function generateMetadata({

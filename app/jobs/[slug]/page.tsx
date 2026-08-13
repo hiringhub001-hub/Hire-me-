@@ -30,12 +30,18 @@ import { Badge, Breadcrumbs, Card, Container, JsonLd, Section } from '@/componen
 export const revalidate = 1800
 
 export async function generateStaticParams() {
-  const jobs = await prisma.job.findMany({
-    where: { status: 'PUBLISHED' },
-    select: { slug: true },
-    take: 100,
-  })
-  return jobs.map((job) => ({ slug: job.slug }))
+  try {
+    const jobs = await prisma.job.findMany({
+      where: { status: 'PUBLISHED' },
+      select: { slug: true },
+      take: 100,
+    })
+    return jobs.map((job) => ({ slug: job.slug }))
+  } catch {
+    // Database unavailable at build time: render jobs on demand instead
+    // of failing the deploy.
+    return []
+  }
 }
 
 export async function generateMetadata({
@@ -66,12 +72,19 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
   if (!job) notFound()
 
   const session = await getSession()
-  const [similar, saved] = await Promise.all([
+  const [similar, saved, profile] = await Promise.all([
     getSimilarJobs(job),
     session
       ? prisma.savedJob.findUnique({
           where: { userId_jobId: { userId: session.userId, jobId: job.id } },
           select: { id: true },
+        })
+      : Promise.resolve(null),
+    // So a returning candidate can apply with the CV already on their profile.
+    session
+      ? prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { cvFileName: true, cvSize: true },
         })
       : Promise.resolve(null),
   ])
@@ -485,7 +498,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
                     Apply for this job
                   </h2>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                    Your details go to {job.company.name}. Applying takes about ten minutes.
+                    Your CV and details go to {job.company.name}. It takes a couple of minutes.
                   </p>
                   <div className="mt-5">
                     <ApplyForm
@@ -493,6 +506,11 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
                       jobTitle={job.title}
                       defaults={
                         session ? { fullName: session.name, email: session.email } : undefined
+                      }
+                      savedCv={
+                        profile?.cvFileName
+                          ? { fileName: profile.cvFileName, size: profile.cvSize ?? 0 }
+                          : null
                       }
                     />
                   </div>

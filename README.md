@@ -8,20 +8,26 @@ Built to satisfy Google AdSense's content and layout policies from day one.
 
 ---
 
-## Run it (about two minutes)
+## Run it (about three minutes)
+
+Needs Docker for the database, so local development runs on the same engine as
+production.
 
 ```bash
 npm install
 cp .env.example .env        # then set AUTH_SECRET (see below)
-npm run setup               # generate client + create DB + seed content
+npm run db:up               # start PostgreSQL in Docker
+npm run setup               # apply migrations + seed content
 npm run dev                 # http://localhost:3000
 ```
 
 Generate a real secret for `.env`:
 
 ```bash
-echo "AUTH_SECRET=\"$(openssl rand -base64 32)\"" 
+echo "AUTH_SECRET=\"$(openssl rand -base64 32)\""
 ```
+
+Already have a PostgreSQL instance? Skip `db:up` and point `DATABASE_URL` at it.
 
 ### Demo accounts
 
@@ -91,6 +97,29 @@ Delivery uses the Resend HTTP API (`lib/email.ts`) — no SDK. Every message is 
 
 To turn delivery on: verify `careerhub.com.ng` in Resend, then set `RESEND_API_KEY`, `EMAIL_FROM`
 and `ADMIN_EMAIL`. Check `EmailLog` to audit what was sent.
+
+---
+
+## CVs
+
+Candidates upload a real file from whatever device they are on — phone, tablet or laptop. There is
+no "paste a link to your CV" field anywhere, because most people do not have their CV on a public
+URL and asking for one loses applications.
+
+- **Formats** PDF, DOC, DOCX, RTF or TXT, up to 5MB. Validated by MIME type, by extension (some
+  Android browsers send no MIME type at all) and, for PDFs, by the file's own `%PDF` signature.
+- **Stored as bytes in the database**, so the app needs no object storage to work end to end. The
+  download route is the only reader, which keeps a later move to R2 or S3 contained.
+- **Saved to the profile on first upload**, then offered as "use the CV on my profile" on every
+  later application — one tap to apply after the first time.
+- **Snapshotted onto the application**, so replacing the CV on your profile never changes what an
+  employer already received.
+- **Access controlled.** `/api/applications/[id]/cv` serves a CV only to the candidate who sent it,
+  the recruiter who owns the job, or an admin. Everyone else gets a 404 rather than a 403, which
+  would confirm the application exists. Responses are `private, no-store`.
+
+The covering note is **optional**. A required essay costs more good applications than the bad ones
+it filters out, and an empty box is more honest than a padded one.
 
 ---
 
@@ -268,35 +297,67 @@ apply, alerts and contact, honeypot on the contact form, open-redirect protectio
 parameter, identical error messages for unknown-email and wrong-password (no account enumeration),
 strict security headers including HSTS, and `nofollow noopener` on every outbound employer link.
 
+Uploaded CVs are personal data and are treated as such: served only to the candidate who sent one,
+the recruiter who owns the job, or an admin; `private, no-store` so no CDN or proxy retains a copy;
+`X-Content-Type-Options: nosniff`; and a 404 rather than a 403 for everyone else, since a 403 would
+confirm the application exists. Uploads are validated by MIME type, extension and file signature,
+and capped at 5MB — the server-action body limit in `next.config.ts` is set to match.
+
 ---
 
 ## Moving to production
 
-### Postgres
+### Database
 
-`prisma/schema.prisma` is written to be Postgres-compatible — no SQLite-only types.
+PostgreSQL throughout — local and production run the same engine, so there is no class of bug that
+only appears after deploy. Migrations live in `prisma/migrations/` and are applied by the build.
 
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
+After changing `prisma/schema.prisma`, run `npx prisma migrate dev --name what_changed` and commit
+the generated migration.
 
-Then `npx prisma migrate dev --name init`. One code change is worth making at the same time: in
-`features/jobs/queries.ts`, add `mode: 'insensitive'` to the `contains` filters (SQLite's `LIKE` is
-already case-insensitive for ASCII; Postgres's is not), or move to a `tsvector` index for real
-full-text search.
+Search uses `contains` with `mode: 'insensitive'`. That is an ILIKE scan; when the listing count
+makes it slow, replace `buildJobWhere` in `features/jobs/queries.ts` with a `tsvector` index or
+Meilisearch. It is the single seam for that change.
 
-### Deploy
+### Deploy to Vercel
 
-**Vercel** — import the repo, set the environment variables, point `DATABASE_URL` at Neon or
-Supabase. `npm run build` runs `prisma generate && prisma migrate deploy` first.
+The build queries the database (to pre-render job and article pages) and applies migrations, so
+**`DATABASE_URL` must be set before the first deploy or the build will fail**. That is exactly what
+the `Environment variable not found: DATABASE_URL` error means.
+
+1. Create a PostgreSQL database on Neon or Supabase and copy its pooled connection string.
+2. In Vercel → Settings → Environment Variables, add these for Production **and** Preview:
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | your Neon/Supabase connection string |
+   | `AUTH_SECRET` | `openssl rand -base64 32` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://careerhub.com.ng` |
+   | `RESEND_API_KEY` | from Resend, once the domain is verified |
+   | `EMAIL_FROM` | `CareerHub <notifications@careerhub.com.ng>` |
+   | `ADMIN_EMAIL` | `admin@careerhub.com.ng` |
+
+3. Add `careerhub.com.ng` under Settings → Domains and point the DNS records Vercel gives you.
+4. Redeploy. `npm run build` runs `prisma generate && prisma migrate deploy && next build`, so the
+   schema is created on first deploy from `prisma/migrations/`.
+5. Seed the production database once, from your machine, with production `DATABASE_URL` set:
+   `npm run db:seed`. Only do this on an empty database — the seed clears the tables it owns.
+
+If the database is briefly unreachable during a build, page pre-rendering degrades to on-demand
+rendering rather than failing the deploy; migrations are the only hard dependency.
 
 **Docker** — `docker build -t careerhub . && docker run -p 3000:3000 --env-file .env careerhub`.
 
 **CI** — `.github/workflows/ci.yml` runs install, generate, db push, seed, typecheck, lint and
 build on every push and PR.
+
+### Known constraint
+
+The mobile drawer is rendered through a React portal onto `<body>`. That is deliberate and should
+not be "simplified" back into the header: the header uses `backdrop-blur`, and a `backdrop-filter`
+establishes a containing block for fixed-position descendants — so a drawer inside the header sizes
+itself against the 64px header rather than the viewport, and its off-screen box widens the entire
+document. `npm run test:layout` catches a regression of this at every breakpoint.
 
 ### Deliberately deferred
 
@@ -316,8 +377,10 @@ These were left out to keep the build runnable today; each is a contained additi
   caps are deliberately generous (30 sign-ups and 40 applications per hour) because carrier-grade
   NAT on Nigerian mobile networks puts many genuine users behind one IP — a tight cap would lock
   out a whole cell tower. Move to per-account limits when you have real traffic to measure.
-- **R2 uploads.** CVs are captured as links rather than uploads, which avoids storage, virus
-  scanning and a GDPR retention problem on day one.
+- **Object storage for CVs.** Uploaded CVs are stored as bytes in PostgreSQL, which keeps the
+  app dependency-free and works identically in every environment. At high volume move them to R2 or
+  S3 — `app/api/applications/[id]/cv/route.ts` is the only reader, so the change is contained.
+  Add virus scanning at the same time.
 
 ---
 
@@ -330,12 +393,18 @@ npm run build && npx next start -p 3200 &
 npm run test:e2e
 ```
 
-32 assertions covering: the role chooser, recruiter sign-up, posting a job, the `PENDING` review
-state, admin approval, the job becoming findable in search, a job seeker applying, the
-"Application successful" screen, all three application emails plus both job-posting emails being
-queued to the right addresses, the applicant appearing for the recruiter, status changes, the
-absence of any posting control for job seekers, the `/recruiter-access` path instead of an error,
-and the outbound aggregator feed.
+45 assertions covering: the role chooser, recruiter sign-up, posting a job, the `PENDING` review
+state, admin approval, the job becoming findable in search, a job seeker uploading a real PDF and
+applying with no covering note, the "Application successful" screen, the CV being stored as bytes
+and mirrored to the profile, all three application emails plus both job-posting emails being queued
+to the right addresses, the applicant appearing for the recruiter, CV download by the applicant and
+the recruiter, CV download being refused to signed-out visitors and unrelated candidates, status
+changes, the absence of any posting control for job seekers, the `/recruiter-access` path instead of
+an error, and the outbound aggregator feed.
+
+`npm run test:layout` guards against horizontal overflow — the sideways scroll and cut-off content
+that breaks phone and tablet layouts. It loads 13 pages at 7 widths from 320px to 1440px, with the
+mobile drawer open and closed, and fails with the specific element responsible. 95 checks.
 
 ## Commands
 
@@ -349,4 +418,7 @@ npm run db:seed      # reseed (wipes and recreates the seeded tables)
 npm run db:studio    # Prisma Studio
 npm run setup        # generate + db push + seed
 npm run test:e2e     # full browser journey (needs a server running)
+npm run test:layout  # horizontal-overflow audit across 7 breakpoints
+npm run db:up        # start PostgreSQL in Docker
+npm run db:down      # stop it
 ```

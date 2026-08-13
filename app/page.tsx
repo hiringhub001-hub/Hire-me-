@@ -91,7 +91,7 @@ export default async function HomePage() {
       {/* Why this is not just a job board -------------------------------- */}
       <Section>
         <Container>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               {
                 title: 'Every listing, explained',
@@ -188,7 +188,7 @@ export default async function HomePage() {
             </ButtonLink>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {guides.map((guide) => (
               <Card key={`${guide.kind}-${guide.slug}`} className="flex flex-col">
                 <Badge tone="brand" className="w-fit">
@@ -215,7 +215,7 @@ export default async function HomePage() {
       {/* Tools + employers ----------------------------------------------- */}
       <Section className="pt-0">
         <Container>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="bg-brand-600 text-white dark:bg-brand-700">
               <h2 className="text-xl font-bold">Free tools for your search</h2>
               <p className="mt-2 text-sm leading-relaxed text-brand-50">

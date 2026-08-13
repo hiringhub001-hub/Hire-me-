@@ -1,5 +1,5 @@
 {
-  "name": "hire-me",
+  "name": "careerhub",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,8 +12,12 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "setup": "prisma generate && prisma db push && npm run db:seed",
-    "test:e2e": "tsx tests/e2e.ts"
+    "setup": "prisma generate && prisma migrate deploy && npm run db:seed",
+    "test:e2e": "tsx tests/e2e.ts",
+    "db:up": "docker compose up -d && node -e \"setTimeout(()=>{},4000)\"",
+    "db:down": "docker compose down",
+    "db:deploy": "prisma migrate deploy",
+    "test:layout": "tsx tests/layout.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -23,7 +27,7 @@
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "jose": "^5.9.6",
-    "next": "15.1.6",
+    "next": "^15.5.23",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "tailwind-merge": "^2.6.0",
@@ -36,7 +40,7 @@
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
-    "eslint-config-next": "15.1.6",
+    "eslint-config-next": "^15.5.23",
     "playwright": "^1.49.1",
     "postcss": "^8.5.1",
     "prisma": "^6.2.1",

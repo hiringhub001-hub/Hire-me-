@@ -45,6 +45,18 @@ export default function ContactPage() {
                   Support: <a href={`mailto:${site.supportEmail}`} className="text-brand-600 hover:underline">{site.supportEmail}</a>
                 </li>
                 <li>
+                  Employers and job listings:{' '}
+                  <a href={`mailto:${site.jobsEmail}`} className="text-brand-600 hover:underline">
+                    {site.jobsEmail}
+                  </a>
+                </li>
+                <li>
+                  Privacy and data requests:{' '}
+                  <a href={`mailto:${site.privacyEmail}`} className="text-brand-600 hover:underline">
+                    {site.privacyEmail}
+                  </a>
+                </li>
+                <li>
                   Corrections: <a href={`mailto:${site.editorialEmail}`} className="text-brand-600 hover:underline">{site.editorialEmail}</a>
                 </li>
               </ul>

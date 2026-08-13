@@ -1,11 +1,12 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 
 import { postJob } from '@/features/employer/actions'
 import { idleState } from '@/lib/action-state'
 import { Alert, Field, buttonClass, inputClass } from '@/components/ui'
+import { track } from '@/lib/analytics'
 
 function Submit() {
   const { pending } = useFormStatus()
@@ -32,6 +33,10 @@ export function PostJobForm({
 }) {
   const [state, formAction] = useActionState(postJob, idleState)
   const [source, setSource] = useState('DIRECT')
+
+  useEffect(() => {
+    if (state.status === 'success') track('job_posted', { source })
+  }, [state.status, source])
 
   if (state.status === 'success') {
     return <Alert tone="success">{state.message}</Alert>

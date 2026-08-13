@@ -26,6 +26,8 @@ import {
 } from '@/lib/utils'
 import { AdSlot } from '@/components/ad-slot'
 import { Badge, Breadcrumbs, Card, Container, JsonLd, Section } from '@/components/ui'
+import { TrackView } from '@/components/track-view'
+import { TrackClick } from '@/components/track-click'
 
 export const revalidate = 1800
 
@@ -51,12 +53,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const job = await getJobBySlug(slug)
-  if (!job) return buildMetadata({ title: 'Job not found', description: '', path: `/jobs/${slug}`, noIndex: true })
+  if (!job)
+    return buildMetadata({
+      title: 'Job not found',
+      description: '',
+      path: `/jobs/${slug}`,
+      noIndex: true,
+    })
 
   const place = job.workMode === 'REMOTE' ? `Remote, ${job.country}` : `${job.city}, ${job.country}`
-  const expired = Boolean(job.expiresAt && job.expiresAt.getTime() < Date.now())
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency, job.salaryPeriod)
-
   const isExpired = Boolean(job.expiresAt && job.expiresAt.getTime() < Date.now())
 
   return buildMetadata({
@@ -100,13 +106,16 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
   const expired = Boolean(job.expiresAt && job.expiresAt.getTime() < Date.now())
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency, job.salaryPeriod)
-  const place = job.workMode === 'REMOTE' ? `Remote — ${job.country}` : `${job.city}, ${job.country}`
+  const place =
+    job.workMode === 'REMOTE' ? `Remote — ${job.country}` : `${job.city}, ${job.country}`
   const path = `/jobs/${job.slug}`
 
   const crumbs = [
     { name: 'Home', href: '/' },
     { name: 'Jobs', href: '/jobs' },
-    ...(job.category ? [{ name: job.category.name, href: `/jobs?category=${job.category.slug}` }] : []),
+    ...(job.category
+      ? [{ name: job.category.name, href: `/jobs?category=${job.category.slug}` }]
+      : []),
     { name: job.title, href: path },
   ]
 
@@ -173,6 +182,15 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         <JsonLd data={jobPostingJsonLd} />
         <JsonLd data={breadcrumbJsonLd(crumbs)} />
         <JsonLd data={faqJsonLd(faqs)} />
+        <TrackView
+          event="job_view"
+          params={{
+            job_id: job.id,
+            job_title: job.title,
+            company: job.company.name,
+            source: job.source,
+          }}
+        />
 
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-10">
           <article>
@@ -231,24 +249,36 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
               {/* Apply actions. No advertisement is permitted in this block. */}
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                 {expired ? (
-                  <a
+                  <Link
                     href="/jobs"
                     className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-brand-600 px-6 font-semibold text-white transition hover:bg-brand-700"
                   >
                     Browse current jobs
-                  </a>
+                  </Link>
                 ) : job.externalUrl ? (
-                  <a
-                    href={job.externalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white transition hover:bg-brand-700"
+                  <TrackClick
+                    event="external_apply_click"
+                    params={{ job_id: job.id, board: job.sourceName ?? job.source }}
                   >
-                    Apply on {job.sourceName ?? 'the employer site'}
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                      <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </a>
+                    <a
+                      href={job.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white transition hover:bg-brand-700"
+                    >
+                      Apply on {job.sourceName ?? 'the employer site'}
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden
+                      >
+                        <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </a>
+                  </TrackClick>
                 ) : (
                   <a
                     href="#apply"
@@ -279,10 +309,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
             {/* Our summary ---------------------------------------------- */}
             <section className="mt-8" aria-labelledby="summary-heading">
-              <h2
-                id="summary-heading"
-                className="text-xl font-bold text-slate-900 dark:text-white"
-              >
+              <h2 id="summary-heading" className="text-xl font-bold text-slate-900 dark:text-white">
                 What this role actually involves
               </h2>
               <p className="mt-1 text-xs uppercase tracking-wide text-brand-600 dark:text-brand-400">
@@ -293,7 +320,10 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
             {/* Employer description -------------------------------------- */}
             <section className="mt-10" aria-labelledby="description-heading">
-              <h2 id="description-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2
+                id="description-heading"
+                className="text-xl font-bold text-slate-900 dark:text-white"
+              >
                 About the job
               </h2>
               <div className="prose-content">
@@ -336,7 +366,10 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             {/* Skills breakdown ------------------------------------------ */}
             {enriched.skillGuides.length ? (
               <section className="mt-10" aria-labelledby="skills-heading">
-                <h2 id="skills-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                <h2
+                  id="skills-heading"
+                  className="text-xl font-bold text-slate-900 dark:text-white"
+                >
                   The skills that will be tested, explained
                 </h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
@@ -345,7 +378,9 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
                 <div className="mt-4 space-y-4">
                   {enriched.skillGuides.map((skill) => (
                     <Card key={skill.key}>
-                      <h3 className="font-semibold text-slate-900 dark:text-white">{skill.label}</h3>
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                        {skill.label}
+                      </h3>
                       <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                         <strong className="text-slate-800 dark:text-slate-200">On the job:</strong>{' '}
                         {skill.whatItMeans}
@@ -447,7 +482,10 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
             {/* Interview prep -------------------------------------------- */}
             <section className="mt-10" aria-labelledby="interview-heading">
-              <h2 id="interview-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2
+                id="interview-heading"
+                className="text-xl font-bold text-slate-900 dark:text-white"
+              >
                 Interview preparation
               </h2>
               <ul className="prose-content mt-2">
@@ -478,13 +516,19 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
             {/* Industry -------------------------------------------------- */}
             <section className="mt-10" aria-labelledby="industry-heading">
-              <h2 id="industry-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2
+                id="industry-heading"
+                className="text-xl font-bold text-slate-900 dark:text-white"
+              >
                 Industry context
               </h2>
               <p className="prose-content mt-3">{enriched.industryOverview}</p>
               <p className="prose-content mt-3">{job.company.description}</p>
               <p className="mt-3 text-sm">
-                <Link href={`/company/${job.company.slug}`} className="text-brand-600 hover:underline">
+                <Link
+                  href={`/company/${job.company.slug}`}
+                  className="text-brand-600 hover:underline"
+                >
                   More about {job.company.name} →
                 </Link>
               </p>
@@ -528,7 +572,10 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             ) : job.allowInternal ? (
               <section id="apply" className="mt-12 scroll-mt-20" aria-labelledby="apply-heading">
                 <Card>
-                  <h2 id="apply-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h2
+                    id="apply-heading"
+                    className="text-xl font-bold text-slate-900 dark:text-white"
+                  >
                     Apply for this job
                   </h2>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
@@ -595,7 +642,10 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             {/* Similar jobs ---------------------------------------------- */}
             {similar.length ? (
               <section className="mt-12" aria-labelledby="similar-heading">
-                <h2 id="similar-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                <h2
+                  id="similar-heading"
+                  className="text-xl font-bold text-slate-900 dark:text-white"
+                >
                   Similar jobs
                 </h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -613,22 +663,34 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
               </h2>
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
-                  <Link href="/career/how-to-write-a-resume" className="text-brand-600 hover:underline">
+                  <Link
+                    href="/career/how-to-write-a-resume"
+                    className="text-brand-600 hover:underline"
+                  >
                     How to write a resume that survives the first six seconds
                   </Link>
                 </li>
                 <li>
-                  <Link href="/interview/behavioural-interview-questions" className="text-brand-600 hover:underline">
+                  <Link
+                    href="/interview/behavioural-interview-questions"
+                    className="text-brand-600 hover:underline"
+                  >
                     Behavioural interview questions and how to answer them
                   </Link>
                 </li>
                 <li>
-                  <Link href="/career/how-to-negotiate-salary" className="text-brand-600 hover:underline">
+                  <Link
+                    href="/career/how-to-negotiate-salary"
+                    className="text-brand-600 hover:underline"
+                  >
                     How to negotiate salary without losing the offer
                   </Link>
                 </li>
                 <li>
-                  <Link href="/blog/how-to-spot-a-job-scam" className="text-brand-600 hover:underline">
+                  <Link
+                    href="/blog/how-to-spot-a-job-scam"
+                    className="text-brand-600 hover:underline"
+                  >
                     How to spot a job scam before it costs you
                   </Link>
                 </li>
@@ -647,9 +709,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           <aside className="mt-10 lg:mt-0">
             <div className="sticky top-24 space-y-6">
               <div className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
-                <h2 className="font-semibold text-slate-900 dark:text-white">
-                  {job.company.name}
-                </h2>
+                <h2 className="font-semibold text-slate-900 dark:text-white">{job.company.name}</h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   {job.company.industry}
                   {job.company.size ? ` · ${job.company.size}` : ''}

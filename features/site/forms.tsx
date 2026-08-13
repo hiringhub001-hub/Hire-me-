@@ -1,12 +1,13 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
 import { useFormStatus } from 'react-dom'
 
 import { sendContactMessage } from '@/features/site/actions'
 import { createJobAlert } from '@/features/jobs/actions'
 import { idleState } from '@/lib/action-state'
 import { Alert, Field, buttonClass, inputClass } from '@/components/ui'
+import { track } from '@/lib/analytics'
 
 function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
@@ -68,6 +69,10 @@ export function ContactForm() {
 
 export function JobAlertForm({ defaultEmail }: { defaultEmail?: string }) {
   const [state, formAction] = useActionState(createJobAlert, idleState)
+
+  useEffect(() => {
+    if (state.status === 'success') track('job_alert_created')
+  }, [state.status])
 
   if (state.status === 'success') {
     return <Alert tone="success">{state.message}</Alert>

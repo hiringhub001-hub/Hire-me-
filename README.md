@@ -71,17 +71,53 @@ always sees the applicants for jobs they posted, and can never see anyone else's
 
 ---
 
+## Admin access
+
+There is **one** way in, and it is invisible to everyone else.
+
+- The admin dashboard lives at **`https://careerhub.com.ng/admin`**.
+- An **Admin** button appears in the site header only for a signed-in admin, carrying an amber
+  badge with the number of listings waiting for review. On mobile, admin entries are added to the
+  top of the drawer menu.
+- No link to `/admin` is rendered anywhere for a job seeker, a recruiter or a signed-out visitor,
+  and `/admin` redirects them away. `robots.txt` disallows it, so it never enters search results.
+- Every moderation action is written to the audit log with the admin's identity.
+
+Sections: **Overview** (queue counts, companies and reviews awaiting approval, recent activity),
+**Moderate jobs** (publish / reject / feature / delete), **Users** (change roles).
+
+To make yourself an admin on the live site, run this once against the production database:
+
+```sql
+UPDATE "User" SET role = 'ADMIN' WHERE email = 'you@example.com';
+```
+
+Sign out and back in — the role is carried in the session cookie, so it takes effect on the next
+sign-in.
+
+---
+
 ## Notifications
 
 Every application sends **three** emails, and every new job posting sends **two**:
 
+`ADMIN_EMAIL` is the operator inbox and defaults to **hiringhub001@gmail.com**. It receives a copy
+of everything that happens on the site.
+
 | Event | Goes to | Contains |
 | --- | --- | --- |
 | Application submitted | The candidate | Confirmation, what happens next, realistic response times, link to track it |
-| Application submitted | The recruiter who posted the job | Candidate name, email, phone, CV link, their note, link to the dashboard |
-| Application submitted | `ADMIN_EMAIL` (`admin@careerhub.com.ng`) | Full copy for oversight |
+| Application submitted | The recruiter who posted the job | Candidate name, email, phone, CV, their note, link to the dashboard |
+| Application submitted | Operator inbox | Full copy for oversight |
 | Job posted | The recruiter | Confirmation, review status, prompt to share it off-site |
-| Job posted | `ADMIN_EMAIL` | Moderation alert with a link to the queue |
+| Job posted | Operator inbox | Moderation alert with a link to the queue |
+| New registration | The user | Welcome, tailored to job seeker or recruiter |
+| New registration | Operator inbox | Who signed up and as what |
+| 5 failed sign-ins for one address in 15 minutes | Operator inbox | Account, attempt count, source IP |
+
+Failed sign-ins deliberately do **not** email on every failure: one mistyped password is noise, and
+alerting on each would flood the inbox and hand an attacker a way to generate mail. The alert fires
+once per window, on the attempt that crosses the threshold.
 
 The candidate also gets an on-screen **"Application successful"** panel confirming the email is on
 its way, that the employer has been notified, and how to track the application.
@@ -122,6 +158,30 @@ The covering note is **optional**. A required essay costs more good applications
 it filters out, and an empty box is more honest than a padded one.
 
 ---
+
+## Job review, and why a posted job may not appear
+
+Recruiter postings land as **`PENDING`** and are not public until an admin approves them. That is
+deliberate — unmoderated boards fill with fraudulent listings, and the review is part of what an
+AdSense reviewer assesses. It is also the most common reason a recruiter thinks "posting is
+broken": the job saved fine, it is just waiting.
+
+Three things make that unambiguous:
+
+- the confirmation says the job is **not live yet** and is queued for review;
+- the recruiter's job list shows an amber "Not live yet" note on every pending listing;
+- the operator inbox gets an email immediately, and the header badge shows the queue count.
+
+If you are running the site solo and want listings live the moment they are posted, set
+`AUTO_PUBLISH_JOBS=true`. Leave it unset while you want a person to check each one.
+
+## Expiring listings
+
+Every posting gets a 30-day `expiresAt`. Once past, the job is removed from search, the sitemap and
+the partner feed, and its page switches to "This job has closed" with the apply form replaced by
+links to current roles. The page stays reachable so shared links do not 404, but it is `noindex`,
+and `validThrough` in the `JobPosting` structured data lets Google drop it from Google Jobs
+automatically.
 
 ## Posting jobs out to LinkedIn, Indeed and social
 
@@ -359,6 +419,25 @@ establishes a containing block for fixed-position descendants — so a drawer in
 itself against the 64px header rather than the viewport, and its off-screen box widens the entire
 document. `npm run test:layout` catches a regression of this at every breakpoint.
 
+### Not built yet — read before launch
+
+These are on your launch checklist and are genuinely missing. Nothing else in this README describes
+something that does not work.
+
+- **Password reset.** There is no "forgot password" flow. Sign-in and registration work; a user who
+  forgets their password currently cannot recover the account without an admin. This is the single
+  biggest gap for a public launch and the next thing to build now that email is wired up.
+- **Email verification.** Registration sets `emailVerified` immediately rather than sending a
+  confirmation link.
+- **CAPTCHA / bot protection.** Rate limiting and a honeypot on the contact form only. Add Turnstile
+  (free, Cloudflare, and you are already using them for DNS) on registration and application before
+  opening to real traffic.
+- **CV malware scanning.** Uploads are validated by type, extension, signature and size, but not
+  scanned. Add ClamAV or a scanning API before employers download files from strangers.
+- **Admin 2FA.**
+- **Cloudflare R2.** CVs are in PostgreSQL, which works but is not where large files belong long
+  term.
+
 ### Deliberately deferred
 
 These were left out to keep the build runnable today; each is a contained addition:
@@ -383,6 +462,19 @@ These were left out to keep the build runnable today; each is a contained additi
   Add virus scanning at the same time.
 
 ---
+
+## Analytics
+
+`lib/analytics.ts` defines a closed set of event names — free-text names are how an analytics
+account becomes unusable. Nothing is sent unless `NEXT_PUBLIC_GA_ID` is set **and** the visitor
+accepted analytics cookies.
+
+Tracked: `job_search`, `job_view`, `apply_click`, `apply_submitted`, `external_apply_click`,
+`job_saved`, `job_shared`, `sign_up`, `employer_sign_up`, `job_posted`, `resume_download`,
+`article_view`, `job_alert_created`.
+
+`/ads.txt` is generated from `NEXT_PUBLIC_ADSENSE_CLIENT` and stays empty until that is set, so
+there is nothing to maintain by hand.
 
 ## Tests
 

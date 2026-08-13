@@ -12,6 +12,7 @@ import {
 } from '@/features/content/queries'
 import { AdSlot } from '@/components/ad-slot'
 import { Badge, Breadcrumbs, Card, Container, JsonLd, PageHeader, Section } from '@/components/ui'
+import { TrackView } from '@/components/track-view'
 import { breadcrumbJsonLd, buildMetadata, faqJsonLd } from '@/lib/seo'
 import { absoluteUrl, site } from '@/lib/site'
 import { csv, formatDate } from '@/lib/utils'
@@ -189,6 +190,10 @@ export async function ContentArticlePage({ kind, slug }: { kind: PostKind; slug:
         <Breadcrumbs crumbs={crumbs} />
         <JsonLd data={breadcrumbJsonLd(crumbs)} />
         {faqs.length ? <JsonLd data={faqJsonLd(faqs)} /> : null}
+        <TrackView
+          event="article_view"
+          params={{ kind, slug: post.slug, category: post.category, title: post.title }}
+        />
         <JsonLd
           data={{
             '@context': 'https://schema.org',

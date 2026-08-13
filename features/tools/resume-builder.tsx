@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { Card, Field, buttonClass, inputClass } from '@/components/ui'
+import { track } from '@/lib/analytics'
 
 /**
  * Resume builder.
@@ -366,7 +367,14 @@ export function ResumeBuilder() {
         </Card>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => window.print()} className={buttonClass()}>
+          <button
+            type="button"
+            onClick={() => {
+              track('resume_download')
+              window.print()
+            }}
+            className={buttonClass()}
+          >
             Download as PDF
           </button>
           <button

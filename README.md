@@ -1,0 +1,352 @@
+# CareerHub — career platform
+
+A mobile-first career resource site: job search with aggregation from LinkedIn / Indeed / other
+boards, applications handled on-site or handed off to the partner board, original editorial
+guidance on every page, free candidate tools, an employer dashboard and a moderation panel.
+
+Built to satisfy Google AdSense's content and layout policies from day one.
+
+---
+
+## Run it (about two minutes)
+
+```bash
+npm install
+cp .env.example .env        # then set AUTH_SECRET (see below)
+npm run setup               # generate client + create DB + seed content
+npm run dev                 # http://localhost:3000
+```
+
+Generate a real secret for `.env`:
+
+```bash
+echo "AUTH_SECRET=\"$(openssl rand -base64 32)\"" 
+```
+
+### Demo accounts
+
+Password for all three is `password123`.
+
+| Role | Email | Lands on |
+| --- | --- | --- |
+| Candidate | `candidate@careerhub.com.ng` | `/dashboard` |
+| Employer | `employer@careerhub.com.ng` | `/employer` |
+| Admin | `admin@careerhub.com.ng` | `/admin` |
+
+The seed creates 8 categories, 6 companies, 16 jobs (a mix of direct, LinkedIn and Indeed
+listings) and 14 long-form articles.
+
+---
+
+## Two kinds of account
+
+The site behaves like any established job board: the two audiences never see each other's
+controls.
+
+| | Job seeker | Recruiter |
+| --- | --- | --- |
+| Sees "Post a job" | **Never** — header, mobile menu, bottom nav and footer all omit it | Yes, everywhere |
+| Can post a job | No | Yes |
+| Header action | "Find jobs" | "Post a job" |
+| Bottom nav (mobile) | Home · Jobs · Tools · Advice · Me | Home · My jobs · Post · Applicants · Browse |
+| Applies to jobs | Yes | — |
+| Sees applicants | Own applications only | Every applicant for jobs they posted |
+
+A signed-out visitor gets the chooser — **"I am a job seeker"** and **"I am a recruiter"** on the
+homepage hero and on `/get-started` — which preselects the right role on the sign-up form.
+
+If a job seeker reaches a recruiter URL directly, they are not shown an error. They land on
+`/recruiter-access`, which explains that theirs is a job seeker account and offers one button to add
+recruiter access to the same login (keeping their saved jobs and application history). Posting stays
+genuinely unavailable to a job seeker account until they make that choice.
+
+Recruiter ownership is `authorId OR company.ownerId` (`features/employer/scope.ts`), so a recruiter
+always sees the applicants for jobs they posted, and can never see anyone else's.
+
+---
+
+## Notifications
+
+Every application sends **three** emails, and every new job posting sends **two**:
+
+| Event | Goes to | Contains |
+| --- | --- | --- |
+| Application submitted | The candidate | Confirmation, what happens next, realistic response times, link to track it |
+| Application submitted | The recruiter who posted the job | Candidate name, email, phone, CV link, their note, link to the dashboard |
+| Application submitted | `ADMIN_EMAIL` (`admin@careerhub.com.ng`) | Full copy for oversight |
+| Job posted | The recruiter | Confirmation, review status, prompt to share it off-site |
+| Job posted | `ADMIN_EMAIL` | Moderation alert with a link to the queue |
+
+The candidate also gets an on-screen **"Application successful"** panel confirming the email is on
+its way, that the employer has been notified, and how to track the application.
+
+Delivery uses the Resend HTTP API (`lib/email.ts`) — no SDK. Every message is written to the
+`EmailLog` table before sending, so:
+
+- **with `RESEND_API_KEY` set** — mail is delivered and the row is marked `SENT`, or `FAILED` with
+  the provider's error;
+- **without it** — the row stays `QUEUED` and the message is logged to the console. Applications
+  still save and the candidate still sees the success screen. Nothing throws because email is not
+  configured yet.
+
+To turn delivery on: verify `careerhub.com.ng` in Resend, then set `RESEND_API_KEY`, `EMAIL_FROM`
+and `ADMIN_EMAIL`. Check `EmailLog` to audit what was sent.
+
+---
+
+## Posting jobs out to LinkedIn, Indeed and social
+
+Traffic flows both ways.
+
+**Inbound** — a recruiter can register a job that already lives on LinkedIn or Indeed; the Apply
+button opens the employer's page there (badged, `nofollow`, new tab).
+
+**Outbound** — CareerHub jobs are pushed to those platforms so candidates come back here to apply:
+
+- **Share buttons** on every job page (LinkedIn, WhatsApp, X, Facebook, copy link), each tagged with
+  UTM parameters so you can see in analytics which channel produced applications.
+- **A ready-made post** on the recruiter's job list — copy the text, paste it into LinkedIn, Indeed
+  or your own careers page. The link points back at the CareerHub job page.
+- **An aggregator feed at `/feeds/jobs.xml`** in the Indeed XML job feed format, which Indeed,
+  Jooble, Talent.com and Adzuna all accept. Submit that URL to each partner and your direct
+  listings are indexed automatically. Only direct listings are included — syndicating a job whose
+  application lives on another board would just duplicate that board's own listing. The feed is
+  generated per request and invalidated whenever a job is published, closed or deleted, so an
+  approved job reaches partners on their next poll.
+
+---
+
+## What is here
+
+**Job seekers** — search and filter jobs, job detail pages with original analysis, apply on-site,
+apply out to LinkedIn/Indeed, save jobs, track applications, profile, job alerts, resume builder,
+cover letter builder, job match / skill gap tool.
+
+**Employers** — register, post a job (direct or pointing at an existing LinkedIn/Indeed listing),
+company profile generated from the posting, applicant list with status management, close listings.
+
+**Admin** — moderate pending jobs (publish / reject / delete / feature), approve company profiles,
+moderate company reviews, manage user roles, audit log of every moderation action.
+
+**Editorial** — career advice, interview guides, salary guides and a blog, all rendered from one
+structured article system with table of contents, FAQs, author attribution and related reading.
+
+### The aggregation model
+
+A job carries a `source` (`DIRECT`, `LINKEDIN`, `INDEED`, `GLASSDOOR`, `OTHER`) and an optional
+`externalUrl`.
+
+- **Direct listing** — candidate applies through the on-site form; the application lands in the
+  employer dashboard.
+- **Partner listing** — the page carries a "via LinkedIn" badge, the Apply button opens the
+  employer's own application page (`rel="noopener noreferrer nofollow"`, new tab), and the page
+  states plainly that CareerHub does not collect that application. The candidate can still save the
+  job here to track it.
+- **Both** — an employer posting a partner listing can tick "also accept applications through
+  CareerHub", and candidates get both routes.
+
+This is what keeps the aggregation honest, and it is also what keeps it AdSense-safe: we never
+imply we own an application we do not handle.
+
+### Why the job pages are not thin content
+
+Every job page carries roughly **650–700 words of original editorial** on top of the employer's
+listing — measured, not estimated. It is derived from the job's own attributes so no two pages are
+alike (verified: summaries, career paths and salary insight all differ between any two jobs):
+
+- a plain-English analysis of what the role actually involves;
+- per-skill breakdowns from our own editorial skill library — what the skill means on the job, how
+  it gets assessed at interview, how to evidence it on a CV;
+- salary insight in context, or guidance on asking when no salary is published;
+- a career path ladder appropriate to the advertised level;
+- CV tailoring advice referencing the listing's own first responsibility;
+- cover letter guidance, an application checklist, interview preparation;
+- industry context, certifications, five generated FAQs, similar jobs and related reading.
+
+Rendered job page: **~2,000 words**. Career guide: **~1,600**. Salary guide: **~1,100**. All
+server-rendered, so it is in the HTML source that crawlers read.
+
+---
+
+## AdSense readiness
+
+### Already done
+
+- **Policy pages** — About, Contact, Privacy, Cookie Policy, Terms, Editorial Policy, Careers, FAQ,
+  Accessibility Statement, Disclaimer, HTML sitemap. All substantive, all linked from the footer.
+- **No thin pages.** Every page type carries original content. Filtered search URLs are
+  `noindex`ed and disallowed in `robots.txt` so they cannot be read as doorway pages.
+- **Ads are off until you turn them on.** `components/ad-slot.tsx` renders *nothing* while
+  `NEXT_PUBLIC_ADSENSE_CLIENT` is empty — a reviewer never sees an empty ad box.
+- **Compliant placements only.** Four allowed positions: mid-article, end-of-article, desktop
+  sidebar, below a full page of results. There is deliberately **no placement beside an Apply
+  button, inside a form, or above the fold on a job page** — the rule is enforced in the component,
+  not by convention.
+- **Labelled.** Every slot is `<aside aria-label="Advertisement">` with a visible "Advertisement"
+  label and reserved height (no layout shift).
+- **Consent banner** recording accept / essential-only, with the choice stored before any analytics
+  or ad script would load.
+- **SEO** — dynamic metadata, canonicals, Open Graph, Twitter cards, JSON-LD (`JobPosting`,
+  `Article`, `Organization`, `WebSite`, `BreadcrumbList`, `FAQPage`, `AggregateRating`),
+  `sitemap.xml`, `robots.txt`, RSS feed, breadcrumbs and heavy internal linking.
+- **Correct HTTP status codes** — missing jobs and companies return a real 404, not a soft 404.
+  Protected routes return 307 to sign-in.
+- **Semantic, accessible HTML** — one `h1` per page, ordered headings, real buttons and labels,
+  skip link, visible focus rings, 44px touch targets, `prefers-reduced-motion` respected.
+
+### Before you apply to AdSense
+
+1. **Deploy to a real domain** and set `NEXT_PUBLIC_SITE_URL`. AdSense will not approve
+   `localhost` or a preview URL.
+2. **Replace the seed content with real listings.** The seeded companies and jobs are illustrative
+   examples with `example.com` URLs. Reviewers check. Post genuine roles, or import real ones with
+   correct `externalUrl` values, before applying.
+3. **Put real contact details** in `lib/site.ts` — the email addresses and address there are
+   placeholders, and a working contact route is something reviewers verify.
+4. **Let it age a little.** Have the site live, crawlable and populated for a couple of weeks with
+   traffic arriving before applying. Applications from brand-new, empty sites are the most common
+   rejection.
+5. **Then** set `NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-XXXXXXXXXXXXXXXX` and redeploy. The script tag,
+   the `google-adsense-account` meta tag and the slots all activate from that one variable.
+
+### Never do these (they will get you rejected or banned)
+
+- Do not add an ad slot beside or above the Apply button. The placement policy in
+  `components/ad-slot.tsx` exists for this reason — do not add placements outside its enum.
+- Do not publish listings that only reprint a scraped description with no original analysis.
+- Do not let employers publish without review; unmoderated boards fill with scam listings, and a
+  scam listing is both an AdSense problem and a real harm to your users.
+- Do not click your own ads, and do not ask anyone to.
+
+---
+
+## Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | `file:./dev.db` locally; a Postgres URL in production |
+| `AUTH_SECRET` | yes | Session signing key, min 32 chars — `openssl rand -base64 32` |
+| `NEXT_PUBLIC_SITE_URL` | production | Canonical origin, used by metadata and sitemap |
+| `NEXT_PUBLIC_ADSENSE_CLIENT` | no | `ca-pub-…`. Ads render only when set |
+| `NEXT_PUBLIC_GA_ID` | no | GA4 measurement ID |
+| `NEXT_PUBLIC_CLARITY_ID` | no | Microsoft Clarity project ID |
+| `RESEND_API_KEY` | no | For email once you wire up verification and alerts |
+
+`lib/env.ts` validates these with Zod at boot, so a bad deploy fails immediately rather than at the
+first request.
+
+---
+
+## Architecture
+
+```
+app/                     routes (App Router, Server Components by default)
+  jobs/ company/ career/ salary/ interview/ blog/   public content
+  dashboard/ employer/ admin/                        authenticated areas
+  tools/                                             client-side free tools
+  sitemap.ts robots.ts rss.xml/ manifest.ts          SEO surface
+components/              shared UI primitives, header, footer, nav, ad slot
+features/                feature modules — queries, server actions, forms
+  jobs/ auth/ candidate/ employer/ admin/ content/ tools/ site/
+content/                 editorial source: articles and the skill library
+lib/                     db, auth, seo, enrichment, rate limiting, env, utils
+prisma/                  schema and seed
+```
+
+- **Server Components everywhere** except the eight places that need interactivity (filters, forms,
+  theme toggle, mobile menu, the three tools). Client bundle is ~105 kB shared.
+- **Server Actions** for every mutation — no REST layer to keep in sync. Each one validates with
+  Zod, rate limits, checks authorisation, and returns a typed `ActionState` the form renders.
+- **Ownership checks on every employer/admin action.** An employer can only touch applications and
+  jobs belonging to their own company; admin actions write an audit log entry.
+
+### Security
+
+CSRF-resistant `SameSite=Lax` HTTP-only session cookies (JWT via `jose`), bcrypt password hashing,
+Zod validation on every input, Prisma parameterised queries, rate limiting on sign-in, sign-up,
+apply, alerts and contact, honeypot on the contact form, open-redirect protection on the `next`
+parameter, identical error messages for unknown-email and wrong-password (no account enumeration),
+strict security headers including HSTS, and `nofollow noopener` on every outbound employer link.
+
+---
+
+## Moving to production
+
+### Postgres
+
+`prisma/schema.prisma` is written to be Postgres-compatible — no SQLite-only types.
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+Then `npx prisma migrate dev --name init`. One code change is worth making at the same time: in
+`features/jobs/queries.ts`, add `mode: 'insensitive'` to the `contains` filters (SQLite's `LIKE` is
+already case-insensitive for ASCII; Postgres's is not), or move to a `tsvector` index for real
+full-text search.
+
+### Deploy
+
+**Vercel** — import the repo, set the environment variables, point `DATABASE_URL` at Neon or
+Supabase. `npm run build` runs `prisma generate && prisma migrate deploy` first.
+
+**Docker** — `docker build -t careerhub . && docker run -p 3000:3000 --env-file .env careerhub`.
+
+**CI** — `.github/workflows/ci.yml` runs install, generate, db push, seed, typecheck, lint and
+build on every push and PR.
+
+### Deliberately deferred
+
+These were left out to keep the build runnable today; each is a contained addition:
+
+- **Email.** Sign-up sets `emailVerified` immediately and job alerts are stored but not yet sent.
+  Wire Resend into `features/auth/actions.ts` (token + verify link) and add a cron route that
+  queries `JobAlert` and sends matches.
+- **Auth.js.** Authentication is a self-contained ~120-line module (`lib/auth.ts`) rather than
+  Auth.js, which avoids a beta dependency and an adapter. Swapping in Auth.js for OAuth providers
+  means replacing that one file — nothing else imports session internals.
+- **Meilisearch.** Search is Prisma `contains` across title, skills, description and company. At a
+  few thousand listings that is fine; `buildJobWhere` in `features/jobs/queries.ts` is the single
+  seam to replace when it is not.
+- **Redis / Upstash.** Rate limiting is in-memory, correct for a single instance. `lib/rate-limit.ts`
+  has one function to swap for `@upstash/ratelimit` when you run multiple instances. The per-IP
+  caps are deliberately generous (30 sign-ups and 40 applications per hour) because carrier-grade
+  NAT on Nigerian mobile networks puts many genuine users behind one IP — a tight cap would lock
+  out a whole cell tower. Move to per-account limits when you have real traffic to measure.
+- **R2 uploads.** CVs are captured as links rather than uploads, which avoids storage, virus
+  scanning and a GDPR retention problem on day one.
+
+---
+
+## Tests
+
+`npm run test:e2e` drives a real headless browser through the whole journey against a built server:
+
+```bash
+npm run build && npx next start -p 3200 &
+npm run test:e2e
+```
+
+32 assertions covering: the role chooser, recruiter sign-up, posting a job, the `PENDING` review
+state, admin approval, the job becoming findable in search, a job seeker applying, the
+"Application successful" screen, all three application emails plus both job-posting emails being
+queued to the right addresses, the applicant appearing for the recruiter, status changes, the
+absence of any posting control for job seekers, the `/recruiter-access` path instead of an error,
+and the outbound aggregator feed.
+
+## Commands
+
+```bash
+npm run dev          # development server
+npm run build        # generate + migrate + build
+npm run start        # production server
+npm run typecheck    # tsc --noEmit
+npm run lint         # eslint
+npm run db:seed      # reseed (wipes and recreates the seeded tables)
+npm run db:studio    # Prisma Studio
+npm run setup        # generate + db push + seed
+npm run test:e2e     # full browser journey (needs a server running)
+```

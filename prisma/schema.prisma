@@ -1,0 +1,364 @@
+// Hire Me — data model.
+//
+// Provider is SQLite so the project runs with zero external services.
+// To move to PostgreSQL (Neon/Supabase) change the datasource to:
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// The model definitions below are written to be Postgres-compatible: no
+// SQLite-only types are used, enums are modelled as validated strings so the
+// same schema migrates cleanly in both directions.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          String    @default("CANDIDATE") // CANDIDATE | EMPLOYER | ADMIN
+  emailVerified DateTime?
+  headline      String?
+  location      String?
+  phone         String?
+  skills        String? // comma separated, kept denormalised for fast profile reads
+  resumeUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company      Company?
+  applications Application[]
+  savedJobs    SavedJob[]
+  jobAlerts    JobAlert[]
+  documents    Document[]
+  postedJobs   Job[]         @relation("JobAuthor")
+  auditLogs    AuditLog[]
+
+  @@index([role])
+}
+
+// ---------------------------------------------------------------------------
+// Companies
+// ---------------------------------------------------------------------------
+
+model Company {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  tagline     String?
+  description String // original editorial overview, not a scraped blurb
+  industry    String
+  website     String?
+  logoUrl     String?
+  size        String?
+  founded     Int?
+  headquarters String?
+  culture     String?
+  benefits    String? // newline separated
+  approved    Boolean @default(false)
+  featured    Boolean @default(false)
+
+  ownerId String? @unique
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  jobs      Job[]
+  locations CompanyLocation[]
+  reviews   CompanyReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([industry])
+  @@index([approved])
+}
+
+model CompanyLocation {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  city      String
+  country   String
+  isPrimary Boolean @default(false)
+
+  @@index([companyId])
+}
+
+model CompanyReview {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorName  String
+  jobTitle    String?
+  rating      Int
+  title       String
+  body        String
+  pros        String?
+  cons        String?
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([companyId, approved])
+}
+
+// ---------------------------------------------------------------------------
+// Jobs
+// ---------------------------------------------------------------------------
+
+model Job {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  description String // employer supplied summary of the role
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  authorId String?
+  author   User?   @relation("JobAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  city        String
+  country     String
+  workMode    String  @default("ONSITE") // ONSITE | HYBRID | REMOTE
+  employment  String  @default("FULL_TIME") // FULL_TIME | PART_TIME | CONTRACT | INTERNSHIP | TEMPORARY
+  experience  String  @default("MID") // ENTRY | JUNIOR | MID | SENIOR | LEAD
+  education   String? // HIGH_SCHOOL | DIPLOMA | BACHELOR | MASTER | PHD
+  salaryMin   Int?
+  salaryMax   Int?
+  salaryPeriod String @default("YEAR") // HOUR | MONTH | YEAR
+  currency    String  @default("USD")
+
+  skills          String // comma separated
+  responsibilities String // newline separated
+  requirements     String // newline separated
+  benefits         String? // newline separated
+  certifications   String? // newline separated
+
+  // Aggregation: a job may live on our site, on a partner board, or both.
+  source        String  @default("DIRECT") // DIRECT | LINKEDIN | INDEED | GLASSDOOR | OTHER
+  sourceName    String? // human readable label for the badge, e.g. "LinkedIn"
+  externalUrl   String? // canonical apply URL on the partner board
+  allowInternal Boolean @default(true) // can candidates apply through Hire Me?
+
+  // Original editorial value added by us on top of the listing.
+  editorialSummary String? // our own plain-English summary of the role
+  careerPath       String? // newline separated progression steps
+  interviewPrep    String? // newline separated preparation notes
+  salaryInsight    String?
+  industryOverview String?
+
+  status     String    @default("PENDING") // PENDING | PUBLISHED | REJECTED | CLOSED
+  featured   Boolean   @default(false)
+  views      Int       @default(0)
+  postedAt   DateTime  @default(now())
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  applications Application[]
+  savedBy      SavedJob[]
+  faqs         JobFaq[]
+
+  @@index([status, postedAt])
+  @@index([companyId])
+  @@index([categoryId])
+  @@index([workMode])
+  @@index([country, city])
+  @@index([source])
+}
+
+model JobFaq {
+  id       String @id @default(cuid())
+  jobId    String
+  job      Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  question String
+  answer   String
+  position Int    @default(0)
+
+  @@index([jobId])
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String
+  icon        String?
+  jobs        Job[]
+
+  @@index([slug])
+}
+
+// ---------------------------------------------------------------------------
+// Candidate activity
+// ---------------------------------------------------------------------------
+
+model Application {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fullName    String
+  email       String
+  phone       String?
+  resumeUrl   String?
+  coverLetter String?
+  status      String   @default("SUBMITTED") // SUBMITTED | REVIEWING | SHORTLISTED | REJECTED | HIRED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([jobId, email])
+  @@index([userId])
+  @@index([status])
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@index([userId])
+}
+
+model JobAlert {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  keywords  String?
+  location  String?
+  workMode  String?
+  frequency String   @default("WEEKLY") // DAILY | WEEKLY
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([email, keywords, location])
+  @@index([active])
+}
+
+// Resume / cover letter documents created with the built in builders.
+model Document {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // RESUME | COVER_LETTER
+  title     String
+  payload   String // JSON blob of the builder state
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, kind])
+}
+
+// ---------------------------------------------------------------------------
+// Editorial
+// ---------------------------------------------------------------------------
+
+model Post {
+  id String @id @default(cuid())
+  // Slugs are unique per content kind, so /salary/frontend-developer and
+  // /interview/frontend-developer can both exist as distinct guides.
+  slug String
+  kind String @default("BLOG") // BLOG | CAREER | INTERVIEW | SALARY
+  title       String
+  excerpt     String
+  body        String // structured JSON sections authored in house
+  category    String
+  tags        String // comma separated
+  authorName  String
+  authorRole  String?
+  coverImage  String?
+  readMinutes Int      @default(6)
+  published   Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  comments Comment[]
+
+  @@unique([kind, slug])
+  @@index([kind, published, publishedAt])
+  @@index([category])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorName String
+  email     String
+  body      String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([postId, approved])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Operations
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  meta      String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// Every outbound notification is recorded here before it is handed to the
+/// email provider. That gives us a delivery audit trail, lets the app work with
+/// no provider configured (status QUEUED), and makes retries possible.
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  template  String // application_candidate | application_employer | application_admin | job_posted_admin | job_posted_employer
+  status    String   @default("QUEUED") // QUEUED | SENT | FAILED
+  providerId String?
+  error     String?
+  entity    String? // e.g. Application, Job
+  entityId  String?
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([entity, entityId])
+}

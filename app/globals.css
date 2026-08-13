@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-200;
+    /* Room for the fixed mobile bottom navigation. */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 1024px) {
+    body {
+      padding-bottom: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-brand-600;
+  }
+}
+
+@layer components {
+  /* Long-form editorial content. Kept hand-rolled so we avoid shipping the
+     typography plugin for a handful of rules. */
+  .prose-content {
+    @apply text-[17px] leading-8 text-slate-700 dark:text-slate-300;
+  }
+  .prose-content h2 {
+    @apply mt-10 scroll-mt-24 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white;
+  }
+  .prose-content h3 {
+    @apply mt-8 text-lg font-semibold text-slate-900 dark:text-white;
+  }
+  .prose-content p {
+    @apply mt-4;
+  }
+  .prose-content ul {
+    @apply mt-4 space-y-2 pl-5;
+  }
+  .prose-content li {
+    @apply list-disc marker:text-brand-500;
+  }
+  .prose-content ol {
+    @apply mt-4 space-y-2 pl-5;
+  }
+  .prose-content ol li {
+    @apply list-decimal;
+  }
+  .prose-content a {
+    @apply font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400;
+  }
+  .prose-content blockquote {
+    @apply mt-6 border-l-4 border-brand-200 pl-4 italic text-slate-600 dark:border-brand-800 dark:text-slate-400;
+  }
+
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-white;
+  }
+}

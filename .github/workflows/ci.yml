@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, deployment]
+  pull_request:
+
+env:
+  DATABASE_URL: file:./ci.db
+  AUTH_SECRET: ci-secret-value-at-least-32-characters-long
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+jobs:
+  quality:
+    name: Typecheck, lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push --skip-generate
+      - run: npm run db:seed
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx next build
+
+  e2e:
+    name: End-to-end journey
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx prisma generate
+      - run: npx prisma db push --skip-generate
+      - run: npm run db:seed
+      - run: npx next build
+
+      - name: Start server
+        run: npx next start -p 3200 &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3200 > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Server did not start in time" && exit 1
+
+      - name: Run journey test
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3200

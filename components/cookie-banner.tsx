@@ -27,7 +27,19 @@ export function CookieBanner() {
     } catch {
       /* ignore */
     }
-    window.dispatchEvent(new CustomEvent('hireme:consent', { detail: choice }))
+
+    // Tell Google Consent Mode about the decision. The tag ships with
+    // everything denied, so this is what actually unlocks analytics and
+    // advertising cookies — and rejecting keeps them off for the whole session.
+    const granted = choice === 'accepted' ? 'granted' : 'denied'
+    window.gtag?.('consent', 'update', {
+      ad_storage: granted,
+      ad_user_data: granted,
+      ad_personalization: granted,
+      analytics_storage: granted,
+    })
+
+    window.dispatchEvent(new CustomEvent('careerhub:consent', { detail: choice }))
     setVisible(false)
   }
 

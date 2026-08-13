@@ -395,7 +395,8 @@ the `Environment variable not found: DATABASE_URL` error means.
    | `NEXT_PUBLIC_SITE_URL` | `https://careerhub.com.ng` |
    | `RESEND_API_KEY` | from Resend, once the domain is verified |
    | `EMAIL_FROM` | `CareerHub <notifications@careerhub.com.ng>` |
-   | `ADMIN_EMAIL` | `admin@careerhub.com.ng` |
+   | `ADMIN_EMAIL` | `hiringhub001@gmail.com` |
+   | `NEXT_PUBLIC_GA_ID` | `G-3LL6XFCN8B` |
 
 3. Add `careerhub.com.ng` under Settings → Domains and point the DNS records Vercel gives you.
 4. Redeploy. `npm run build` runs `prisma generate && prisma migrate deploy && next build`, so the
@@ -463,7 +464,34 @@ These were left out to keep the build runnable today; each is a contained additi
 
 ---
 
-## Analytics
+## Google Analytics and consent
+
+The GA4 measurement ID is **`G-3LL6XFCN8B`**, set via `NEXT_PUBLIC_GA_ID`.
+
+`NEXT_PUBLIC_*` variables are baked in at build time, so **the ID must be set in Vercel and the
+project redeployed** — setting it only in local `.env` will not put the tag on the live site. That,
+plus the live site still running the old `main` build, is why Google reported "Your Google tag
+wasn't detected on careerhub.com.ng".
+
+The tag is rendered as raw `<script>` tags at the top of `<head>` (`components/google-tag.tsx`)
+rather than through `next/script`. That is deliberate: `next/script` with `afterInteractive`
+injects the tag only after hydration, which is a common reason a correctly instrumented site still
+fails Google's detection. Both scripts are `async`, so nothing is render-blocking. Exactly one tag
+is emitted per page — Google rejects pages carrying more than one, and the test suite asserts it.
+
+**Consent Mode v2** is configured, which is what Google asks for if you have EEA visitors:
+
+- `gtag('consent', 'default', …)` runs *before* the tag loads with `ad_storage`, `ad_user_data`,
+  `ad_personalization` and `analytics_storage` all **denied**;
+- a previously stored choice is re-applied in the same inline script, so a returning visitor's
+  consent is active before the first hit;
+- the cookie banner calls `gtag('consent', 'update', …)` when the visitor chooses.
+
+Until consent is given the tag writes no cookies and sends cookieless pings only, which is what
+keeps the Cookie Policy accurate. Verified end to end in the journey test: denied on load, granted
+after Accept, persisted across reloads.
+
+## Analytics events
 
 `lib/analytics.ts` defines a closed set of event names — free-text names are how an analytics
 account becomes unusable. Nothing is sent unless `NEXT_PUBLIC_GA_ID` is set **and** the visitor

@@ -396,7 +396,7 @@ the `Environment variable not found: DATABASE_URL` error means.
    | `RESEND_API_KEY` | from Resend, once the domain is verified |
    | `EMAIL_FROM` | `CareerHub <notifications@careerhub.com.ng>` |
    | `ADMIN_EMAIL` | `hiringhub001@gmail.com` |
-   | `NEXT_PUBLIC_GA_ID` | `G-3LL6XFCN8B` |
+   | `NEXT_PUBLIC_GA_ID` | `G-DEXV6YXTZB` (optional — defaulted in code) |
 
 3. Add `careerhub.com.ng` under Settings → Domains and point the DNS records Vercel gives you.
 4. Redeploy. `npm run build` runs `prisma generate && prisma migrate deploy && next build`, so the
@@ -466,12 +466,14 @@ These were left out to keep the build runnable today; each is a contained additi
 
 ## Google Analytics and consent
 
-The GA4 measurement ID is **`G-3LL6XFCN8B`**, set via `NEXT_PUBLIC_GA_ID`.
+The GA4 measurement ID is **`G-DEXV6YXTZB`**, defaulted in `lib/site.ts` and overridable with
+`NEXT_PUBLIC_GA_ID`.
 
-`NEXT_PUBLIC_*` variables are baked in at build time, so **the ID must be set in Vercel and the
-project redeployed** — setting it only in local `.env` will not put the tag on the live site. That,
-plus the live site still running the old `main` build, is why Google reported "Your Google tag
-wasn't detected on careerhub.com.ng".
+It is defaulted in code on purpose. `NEXT_PUBLIC_*` variables are inlined at build time, so an
+unset variable in Vercel produced *no tag at all* — indistinguishable from a broken install, and a
+silent failure that is easy to lose hours to. A measurement ID is public anyway: it appears in the
+page source of every site that uses one. To point at a different property, set `NEXT_PUBLIC_GA_ID`
+and redeploy; no code change needed.
 
 The tag is rendered as raw `<script>` tags at the top of `<head>` (`components/google-tag.tsx`)
 rather than through `next/script`. That is deliberate: `next/script` with `afterInteractive`

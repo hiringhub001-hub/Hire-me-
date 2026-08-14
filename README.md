@@ -379,6 +379,15 @@ Search uses `contains` with `mode: 'insensitive'`. That is an ILIKE scan; when t
 makes it slow, replace `buildJobWhere` in `features/jobs/queries.ts` with a `tsvector` index or
 Meilisearch. It is the single seam for that change.
 
+### Checking the live site
+
+`npm run check:live` reports, in one command, whether the domain resolves, whether the deployment
+is serving, whether the Google tags are present and whether any jobs are published. DNS is queried
+through Google's public resolver — the same view Google's crawler gets, which differs from what a
+dashboard shows — and the deployment is fetched directly at Vercel's IP, so "DNS not published" is
+distinguishable from "site broken". Those are very different problems and look identical from a
+browser.
+
 ### Deploy to Vercel
 
 The build queries the database (to pre-render job and article pages) and applies migrations, so
@@ -541,6 +550,7 @@ npm run db:studio    # Prisma Studio
 npm run setup        # generate + db push + seed
 npm run test:e2e     # full browser journey (needs a server running)
 npm run test:layout  # horizontal-overflow audit across 7 breakpoints
+npm run check:live   # DNS, deployment, Google tags and content on the live domain
 npm run db:up        # start PostgreSQL in Docker
 npm run db:down      # stop it
 ```

@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils'
 /**
  * Ad placement policy for this site
  * ---------------------------------
- * 1. Slots only render when NEXT_PUBLIC_ADSENSE_CLIENT is set. Until AdSense
- *    approves the account nothing is rendered at all — reviewers must never
- *    see empty ad boxes or placeholder blocks.
+ * 1. Slots only render when `site.adsEnabled` is true. Until AdSense approves
+ *    the account nothing is rendered at all — reviewers must never see empty ad
+ *    boxes or placeholder blocks. The verification script loads regardless.
  * 2. Slots are only allowed in the positions enumerated by `AdPlacement`.
  *    There is deliberately no placement next to an Apply button, inside a
  *    form, or above the fold on a job page.
@@ -36,7 +36,10 @@ export function AdSlot({
   slotId?: string
   className?: string
 }) {
-  if (!site.adsenseClient) return null
+  // Gated on adsEnabled, not on the publisher ID: the verification script is
+  // installed and loading, but no ad placements render until AdSense approves
+  // the site. An empty slot shown to a reviewer reads as an unfinished page.
+  if (!site.adsEnabled || !site.adsenseClient) return null
 
   return (
     <aside

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Blocks committing a live credential in a tracked file.
+#
+# .env.example is committed, so a real key pasted there leaves the machine the
+# moment you push. GitHub's push protection catches it, but only after the
+# commit exists — this catches it before.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+
+if git diff --cached -U0 | grep -nE '^\+.*(re_[A-Za-z0-9]{20,}|sk_live_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{30,})' >/dev/null; then
+  echo "refusing to commit: a live API key looks like it is being added."
+  echo "Put real credentials in .env (gitignored) and in your host's environment settings."
+  echo "Files staged:"
+  git diff --cached --name-only | sed 's/^/  /'
+  exit 1
+fi

@@ -348,6 +348,11 @@ async function run(browser: Browser) {
 
   const adsTxt = await fetch(`${BASE}/ads.txt`).then((r) => r.text())
   check('ads.txt is served', adsTxt.length > 0)
+  check(
+    'ads.txt authorises the publisher account',
+    adsTxt.includes('pub-5839819198342011'),
+    adsTxt.trim().slice(0, 80),
+  )
 
   /* 10 — Google tag and consent mode ---------------------------------------- */
   console.log('\n10. Google tag, Search Console and consent mode')
@@ -384,6 +389,33 @@ async function run(browser: Browser) {
       /<script[^>]*src="[^"]*googletagmanager\.com\/gtag\/js[^"]*"[^>]*>/g,
     )
     check('Exactly one Google tag on the page', (scriptTags?.length ?? 0) === 1, `found ${scriptTags?.length ?? 0}`)
+
+    // AdSense: the verification loader must be present exactly once and in
+    // <head>, while no ad unit renders until the account is approved.
+    const adsenseTags =
+      homeHtml.match(/<script[^>]*src="[^"]*adsbygoogle\.js[^"]*"[^>]*>/g) ?? []
+    check('AdSense loader is in <head>', head.includes('adsbygoogle.js'))
+    check('Exactly one AdSense loader', adsenseTags.length === 1, `found ${adsenseTags.length}`)
+    check(
+      'AdSense loader uses the right publisher ID',
+      adsenseTags[0]?.includes('ca-pub-5839819198342011') ?? false,
+    )
+    check(
+      'AdSense account meta tag present',
+      /<meta name="google-adsense-account" content="ca-pub-5839819198342011"/.test(homeHtml),
+    )
+
+    // Requirement while awaiting approval: script yes, ad placements no.
+    const adUnitPages = await Promise.all(
+      ['/', '/jobs', `/jobs/${published!.slug}`, '/career/how-to-write-a-resume'].map((path) =>
+        fetch(`${BASE}${path}`).then((r) => r.text()),
+      ),
+    )
+    const adUnits = adUnitPages.reduce(
+      (count, page) => count + (page.match(/class="[^"]*adsbygoogle/g) ?? []).length,
+      0,
+    )
+    check('No ad units rendered before approval', adUnits === 0, `${adUnits} <ins> unit(s)`)
 
     const consentPage = await browser.newPage()
     await consentPage.route('**/googletagmanager.com/**', (route) =>

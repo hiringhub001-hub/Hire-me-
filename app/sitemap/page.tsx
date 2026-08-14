@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 
 import { prisma } from '@/lib/db'
 import { kindPaths } from '@/content/posts'
+import { MIN_JOBS_FOR_LOCATION_INDEX, getLocationCounts } from '@/features/jobs/queries'
 import { Breadcrumbs, Container, JsonLd, PageHeader, Section } from '@/components/ui'
 import { breadcrumbJsonLd, buildMetadata } from '@/lib/seo'
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = buildMetadata({
 })
 
 export default async function SitemapPage() {
-  const [jobs, companies, posts, categories] = await Promise.all([
+  const [jobs, companies, posts, categories, locations] = await Promise.all([
     prisma.job.findMany({
       where: {
         status: 'PUBLISHED',
@@ -35,6 +36,7 @@ export default async function SitemapPage() {
       select: { slug: true, kind: true, title: true },
     }),
     prisma.category.findMany({ orderBy: { name: 'asc' }, select: { slug: true, name: true } }),
+    getLocationCounts(),
   ])
 
   const crumbs = [
@@ -60,9 +62,18 @@ export default async function SitemapPage() {
     {
       title: 'Job categories',
       links: categories.map((category) => ({
-        href: `/jobs?category=${category.slug}`,
+        href: `/jobs/category/${category.slug}`,
         label: `${category.name} jobs`,
       })),
+    },
+    {
+      title: 'Jobs by location',
+      links: locations
+        .filter((location) => location.count >= MIN_JOBS_FOR_LOCATION_INDEX)
+        .map((location) => ({
+          href: `/jobs/location/${location.slug}`,
+          label: `Jobs in ${location.country}`,
+        })),
     },
     {
       title: 'Free tools',
@@ -130,7 +141,9 @@ export default async function SitemapPage() {
         />
 
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
-          {sections.map((section) => (
+          {sections
+            .filter((section) => section.links.length > 0)
+            .map((section) => (
             <section key={section.title}>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">{section.title}</h2>
               <ul className="mt-3 space-y-2">

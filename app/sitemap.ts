@@ -2,12 +2,17 @@ import type { MetadataRoute } from 'next'
 
 import { prisma } from '@/lib/db'
 import { kindPaths } from '@/content/posts'
+import {
+  MIN_JOBS_FOR_LOCATION_INDEX,
+  getIndexableCategories,
+  getLocationCounts,
+} from '@/features/jobs/queries'
 import { absoluteUrl } from '@/lib/site'
 
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [jobs, companies, posts, categories] = await Promise.all([
+  const [jobs, companies, posts, categories, locations] = await Promise.all([
     prisma.job.findMany({
       // Expired listings are noindex, so they stay out of the sitemap too.
       where: {
@@ -24,7 +29,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { published: true },
       select: { slug: true, kind: true, updatedAt: true },
     }),
-    prisma.category.findMany({ select: { slug: true } }),
+    getIndexableCategories(),
+    getLocationCounts(),
   ])
 
   const now = new Date()
@@ -54,17 +60,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/cookies'), lastModified: now, priority: 0.3 },
     { url: absoluteUrl('/accessibility'), lastModified: now, priority: 0.3 },
     { url: absoluteUrl('/disclaimer'), lastModified: now, priority: 0.3 },
-    { url: absoluteUrl('/signup'), lastModified: now, priority: 0.3 },
+    { url: absoluteUrl('/get-started'), lastModified: now, priority: 0.5 },
   ]
 
   return [
     ...staticRoutes,
+    // Real landing pages, not `?category=` query strings: those are blocked by
+    // robots.txt, so submitting them here would ask Google to crawl something
+    // we have explicitly told it not to.
     ...categories.map((category) => ({
-      url: absoluteUrl(`/jobs?category=${category.slug}`),
+      url: absoluteUrl(`/jobs/category/${category.slug}`),
       lastModified: now,
       changeFrequency: 'daily' as const,
-      priority: 0.6,
+      priority: 0.7,
     })),
+    // Only locations with enough live roles to be worth landing on.
+    ...locations
+      .filter((location) => location.count >= MIN_JOBS_FOR_LOCATION_INDEX)
+      .map((location) => ({
+        url: absoluteUrl(`/jobs/location/${location.slug}`),
+        lastModified: now,
+        changeFrequency: 'daily' as const,
+        priority: 0.6,
+      })),
     ...jobs.map((job) => ({
       url: absoluteUrl(`/jobs/${job.slug}`),
       lastModified: job.updatedAt,

@@ -7,6 +7,7 @@ import { JobFilters as JobFiltersUI } from '@/features/jobs/job-filters'
 import { AdSlot } from '@/components/ad-slot'
 import { Breadcrumbs, ButtonLink, Container, EmptyState, JsonLd, Section } from '@/components/ui'
 import { breadcrumbJsonLd, buildMetadata } from '@/lib/seo'
+import { slugify } from '@/lib/utils'
 import { absoluteUrl } from '@/lib/site'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
@@ -200,7 +201,7 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
                   {facets.countries.map((country) => (
                     <li key={country.country}>
                       <Link
-                        href={`/jobs?location=${encodeURIComponent(country.country)}`}
+                        href={`/jobs/location/${slugify(country.country)}`}
                         className="flex items-center justify-between text-sm text-slate-600 hover:text-brand-600 dark:text-slate-400"
                       >
                         {country.country}

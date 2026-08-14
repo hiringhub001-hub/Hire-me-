@@ -3,6 +3,7 @@ import 'server-only'
 import type { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/db'
+import { slugify } from '@/lib/utils'
 
 export const JOBS_PER_PAGE = 12
 
@@ -212,4 +213,80 @@ export async function getJobFacets() {
   ])
 
   return { categories, countries, total, remote }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Landing pages                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A category or location only earns a crawlable landing page once it has enough
+ * live jobs to be worth reading. Below the threshold the page still renders for
+ * anyone who follows a link, but it is marked noindex and kept out of the
+ * sitemap — an empty "Jobs in X" page is exactly the thin content that damages
+ * a site's standing.
+ */
+export const MIN_JOBS_FOR_CATEGORY_INDEX = 1
+export const MIN_JOBS_FOR_LOCATION_INDEX = 3
+
+export async function getCategoryLanding(slug: string) {
+  const category = await prisma.category.findUnique({ where: { slug } })
+  if (!category) return null
+
+  const [jobs, total] = await Promise.all([
+    prisma.job.findMany({
+      where: { ...liveJobWhere, categoryId: category.id },
+      select: jobCardSelect,
+      orderBy: [{ featured: 'desc' }, { postedAt: 'desc' }],
+      take: JOBS_PER_PAGE,
+    }),
+    prisma.job.count({ where: { ...liveJobWhere, categoryId: category.id } }),
+  ])
+
+  return { category, jobs, total }
+}
+
+/** Categories that currently qualify for indexing, for the sitemap. */
+export async function getIndexableCategories() {
+  const categories = await prisma.category.findMany({
+    orderBy: { name: 'asc' },
+    select: {
+      slug: true,
+      _count: { select: { jobs: { where: liveJobWhere } } },
+    },
+  })
+  return categories.filter((c) => c._count.jobs >= MIN_JOBS_FOR_CATEGORY_INDEX)
+}
+
+/**
+ * Locations are grouped by country. City-level pages would multiply into
+ * hundreds of near-identical pages, which is the classic doorway-page pattern.
+ */
+export async function getLocationCounts() {
+  const rows = await prisma.job.groupBy({
+    by: ['country'],
+    where: liveJobWhere,
+    _count: { country: true },
+    orderBy: { _count: { country: 'desc' } },
+  })
+  return rows.map((row) => ({
+    country: row.country,
+    slug: slugify(row.country),
+    count: row._count.country,
+  }))
+}
+
+export async function getLocationLanding(slug: string) {
+  const locations = await getLocationCounts()
+  const match = locations.find((location) => location.slug === slug)
+  if (!match) return null
+
+  const jobs = await prisma.job.findMany({
+    where: { ...liveJobWhere, country: match.country },
+    select: jobCardSelect,
+    orderBy: [{ featured: 'desc' }, { postedAt: 'desc' }],
+    take: JOBS_PER_PAGE,
+  })
+
+  return { ...match, jobs, total: match.count }
 }

@@ -17,7 +17,8 @@
     "db:up": "docker compose up -d && node -e \"setTimeout(()=>{},4000)\"",
     "db:down": "docker compose down",
     "db:deploy": "prisma migrate deploy",
-    "test:layout": "tsx tests/layout.ts"
+    "test:layout": "tsx tests/layout.ts",
+    "check:live": "tsx scripts/check-live.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

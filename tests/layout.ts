@@ -32,6 +32,8 @@ const paths = [
   '/tools/resume-builder',
   '/tools/job-match',
   '/get-started',
+  '/jobs/category/technology',
+  '/jobs/location/united-kingdom',
   '/signup',
   '/faq',
   '/privacy',

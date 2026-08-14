@@ -502,6 +502,24 @@ Until consent is given the tag writes no cookies and sends cookieless pings only
 keeps the Cookie Policy accurate. Verified end to end in the journey test: denied on load, granted
 after Accept, persisted across reloads.
 
+## Sitemap and robots
+
+`sitemap.xml` is generated from the database, so every live job, company profile and article is
+included automatically and expired jobs drop out. It contains no query-string URLs.
+
+Category and location landing pages live at `/jobs/category/[slug]` and `/jobs/location/[slug]`
+rather than `?category=` filters. That matters: `robots.txt` blocks `/jobs?` to stop filtered
+search URLs competing with `/jobs`, so a sitemap full of `?category=` links would be asking Google
+to crawl exactly what we told it not to. Each landing page carries its own written introduction, and
+is only submitted once it has enough live roles to be worth reading — one job for a category, three
+for a location, since category copy is hand-written and location copy is generated. Below the
+threshold the page still renders for anyone following a link, but it is `noindex`.
+
+On `Disallow: /jobs?`: `?` is a literal character in robots.txt — only `*` and a trailing `$` are
+wildcards — so that rule matches `/jobs?q=react` and leaves `/jobs`, `/jobs/some-job-slug`,
+`/jobs/category/...` and `/jobs/location/...` untouched. `npm run test:seo` asserts each of those
+cases, and cross-checks that no sitemap URL is blocked by any robots rule.
+
 ## Analytics events
 
 `lib/analytics.ts` defines a closed set of event names — free-text names are how an analytics
@@ -550,6 +568,7 @@ npm run db:studio    # Prisma Studio
 npm run setup        # generate + db push + seed
 npm run test:e2e     # full browser journey (needs a server running)
 npm run test:layout  # horizontal-overflow audit across 7 breakpoints
+npm run test:seo     # sitemap/robots cross-check, coverage and canonicals
 npm run check:live   # DNS, deployment, Google tags and content on the live domain
 npm run db:up        # start PostgreSQL in Docker
 npm run db:down      # stop it

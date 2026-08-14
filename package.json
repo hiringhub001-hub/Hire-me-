@@ -18,7 +18,8 @@
     "db:down": "docker compose down",
     "db:deploy": "prisma migrate deploy",
     "test:layout": "tsx tests/layout.ts",
-    "check:live": "tsx scripts/check-live.ts"
+    "check:live": "tsx scripts/check-live.ts",
+    "test:seo": "tsx tests/seo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -42,6 +43,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.5.23",
+    "fast-xml-parser": "^5.10.1",
     "playwright": "^1.49.1",
     "postcss": "^8.5.1",
     "prisma": "^6.2.1",

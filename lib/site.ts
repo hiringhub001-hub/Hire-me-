@@ -43,7 +43,18 @@ export const site = {
   },
   /** Set NEXT_PUBLIC_ADSENSE_CLIENT once your AdSense account is approved. */
   adsenseClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '',
-  gaId: process.env.NEXT_PUBLIC_GA_ID ?? '',
+  /**
+   * GA4 measurement ID.
+   *
+   * Defaulted in code rather than left empty. NEXT_PUBLIC_* variables are
+   * inlined at build time, so an unset variable in Vercel silently produced no
+   * tag at all — which looks identical to a broken install and is why Google
+   * kept reporting "tag not detected". A measurement ID is public (it is
+   * visible in the page source of every site using it), so there is nothing to
+   * protect by hiding it. Set NEXT_PUBLIC_GA_ID to point at a different
+   * property without a code change.
+   */
+  gaId: process.env.NEXT_PUBLIC_GA_ID ?? 'G-DEXV6YXTZB',
   clarityId: process.env.NEXT_PUBLIC_CLARITY_ID ?? '',
   /**
    * Google Search Console HTML-tag verification token.

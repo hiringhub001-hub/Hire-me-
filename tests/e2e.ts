@@ -366,7 +366,11 @@ async function run(browser: Browser) {
     'Verification token matches the one Google issued',
     verificationTags[0]?.includes('8euaUVHVkIhg5YaLtTEMo9vbjBiV5n54-PuYmRZNww4') ?? false,
   )
-  const gaConfigured = /NEXT_PUBLIC_GA_ID|G-[A-Z0-9]+/.test(head)
+  // The ID is defaulted in lib/site.ts, so the tag must be present even when no
+  // environment variable is set — that silent-empty case is what previously
+  // shipped a page with no tag on it at all.
+  const gaConfigured = /G-[A-Z0-9]{6,}/.test(head)
+  check('A measurement ID is present without relying on env config', gaConfigured)
 
   if (gaConfigured) {
     check('Google tag is in the served <head>', head.includes('googletagmanager.com/gtag/js'))

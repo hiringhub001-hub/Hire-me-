@@ -13,6 +13,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { ThemeScript } from '@/components/theme-toggle'
 import { CookieBanner } from '@/components/cookie-banner'
 import { GoogleTag } from '@/components/google-tag'
+import { AdSenseScript } from '@/components/adsense-script'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Google tag first, so it is present in the served HTML for detection
             and so Consent Mode defaults are set before anything can fire. */}
         <GoogleTag />
+        <AdSenseScript />
         <ThemeScript />
         {site.adsenseClient ? (
           <meta name="google-adsense-account" content={site.adsenseClient} />
@@ -108,15 +110,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </Script>
         ) : null}
 
-        {site.adsenseClient ? (
-          <Script
-            id="adsense"
-            async
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${site.adsenseClient}`}
-          />
-        ) : null}
       </body>
     </html>
   )

@@ -41,8 +41,29 @@ export const site = {
     twitter: '@careerhubng',
     linkedin: 'https://www.linkedin.com/company/careerhubng',
   },
-  /** Set NEXT_PUBLIC_ADSENSE_CLIENT once your AdSense account is approved. */
-  adsenseClient: process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '',
+  /**
+   * AdSense publisher ID.
+   *
+   * Held in code, not an environment variable. A publisher ID is public — it
+   * is visible in the page source of every site running AdSense — and making
+   * the verification script depend on a build-time variable is how a tag ends
+   * up silently missing from production, which is exactly the failure we hit
+   * with the analytics ID.
+   */
+  adsenseClient: 'ca-pub-5839819198342011',
+  /**
+   * Whether to render actual ad units.
+   *
+   * Separate from the publisher ID on purpose. The verification script above
+   * always loads, because that is what AdSense checks when reviewing the site.
+   * The `<ins class="adsbygoogle">` placements stay off until the account is
+   * approved: serving empty ad slots to a reviewer looks like an unfinished
+   * site, and Google asks publishers not to place ad code before approval.
+   *
+   * Set this to `true` once AdSense approves careerhub.com.ng, and the slots
+   * already positioned throughout the site come to life.
+   */
+  adsEnabled: false,
   /**
    * GA4 measurement ID.
    *
@@ -54,8 +75,14 @@ export const site = {
    * protect by hiding it. Set NEXT_PUBLIC_GA_ID to point at a different
    * property without a code change.
    */
-  gaId: process.env.NEXT_PUBLIC_GA_ID ?? 'G-DEXV6YXTZB',
-  clarityId: process.env.NEXT_PUBLIC_CLARITY_ID ?? '',
+  gaId: process.env.NEXT_PUBLIC_GA_ID || 'G-DEXV6YXTZB',
+  /**
+   * Microsoft Clarity project ID. Defaulted in code for the same reason as the
+   * analytics and AdSense IDs: it is a public value, and leaving it to a
+   * build-time variable means a missing setting in Vercel silently ships no
+   * tag. Override with NEXT_PUBLIC_CLARITY_ID to point at another project.
+   */
+  clarityId: process.env.NEXT_PUBLIC_CLARITY_ID || 'y1y2c80bu4',
   /**
    * Google Search Console HTML-tag verification token.
    *
@@ -66,7 +93,7 @@ export const site = {
    * and indexing reports.
    */
   googleSiteVerification:
-    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ??
+    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
     '8euaUVHVkIhg5YaLtTEMo9vbjBiV5n54-PuYmRZNww4',
 } as const
 

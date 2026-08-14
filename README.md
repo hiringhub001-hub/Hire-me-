@@ -530,8 +530,41 @@ Tracked: `job_search`, `job_view`, `apply_click`, `apply_submitted`, `external_a
 `job_saved`, `job_shared`, `sign_up`, `employer_sign_up`, `job_posted`, `resume_download`,
 `article_view`, `job_alert_created`.
 
-`/ads.txt` is generated from `NEXT_PUBLIC_ADSENSE_CLIENT` and stays empty until that is set, so
-there is nothing to maintain by hand.
+## AdSense
+
+The publisher ID is `ca-pub-5839819198342011`, held in `lib/site.ts` rather than an environment
+variable — it is public, and a build-time variable is how a tag silently goes missing.
+
+Two separate switches:
+
+- **`adsenseClient`** — the verification script (`components/adsense-script.tsx`), rendered as a raw
+  `<script>` in `<head>` exactly like the Google tag, because that is what AdSense's review looks
+  for. Always on.
+- **`adsEnabled`** — whether `<ins class="adsbygoogle">` units actually render. **`false` until the
+  account is approved.** Ad slots are already positioned throughout the site; flip this one boolean
+  after approval and they come to life. Showing empty slots to a reviewer reads as an unfinished
+  site, and Google asks publishers not to place ad code before approval.
+
+`/ads.txt` is generated from the publisher ID, so there is nothing to maintain by hand.
+
+### A note on `??` versus `||`
+
+The public IDs use `process.env.X || 'default'`, not `??`. These variables are typically present in
+`.env` but empty, and `??` only falls back on `undefined` — an empty string passes straight through
+and disables the tag. That single character is what kept Microsoft Clarity from loading despite
+being configured.
+
+## Keeping credentials out of git
+
+`.env.example` is a committed file, so a real key pasted into it leaves your machine the moment you
+push. GitHub's push protection catches that, but only after the commit exists. Enable the local
+guard once per clone to catch it before:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Real credentials belong in `.env` (gitignored) and in the Vercel environment settings.
 
 ## Tests
 

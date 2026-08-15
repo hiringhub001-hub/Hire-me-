@@ -53,14 +53,26 @@ export default async function SignInPage({
           </p>
         </Card>
 
-        <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
-          <p className="font-medium text-slate-800 dark:text-slate-200">Demo accounts</p>
-          <p className="mt-1">
-            candidate@careerhub.com.ng · employer@careerhub.com.ng · admin@careerhub.com.ng
-            <br />
-            Password for all three: <code className="font-mono">password123</code>
-          </p>
-        </div>
+        {/*
+          Development only. These accounts exist solely when the seed is run
+          with SEED_DEMO_CONTENT=true; on a live site the panel advertised three
+          logins that do not exist, alongside a shared password — confusing at
+          best, and an invitation to try password123 against real accounts.
+        */}
+        {process.env.NODE_ENV === 'development' ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
+            <p className="font-medium text-slate-800 dark:text-slate-200">Demo accounts</p>
+            <p className="mt-1">
+              candidate@careerhub.com.ng · employer@careerhub.com.ng · admin@careerhub.com.ng
+              <br />
+              Password for all three: <code className="font-mono">password123</code>
+            </p>
+            <p className="mt-2 text-xs">
+              Created by <code className="font-mono">SEED_DEMO_CONTENT=true npm run db:seed</code>.
+              This panel never renders in production.
+            </p>
+          </div>
+        ) : null}
       </Container>
     </Section>
   )

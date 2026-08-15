@@ -13,7 +13,20 @@ export function GoogleButton({
   next?: string
   label?: string
 }) {
-  if (!googleEnabled) return null
+  if (!googleEnabled) {
+    // Nothing is shown to real visitors. In development only, explain the
+    // absence so it does not look like a bug.
+    if (process.env.NODE_ENV === 'development') {
+      return (
+        <p className="rounded-xl border border-dashed border-slate-300 p-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          Google sign-in is hidden because GOOGLE_CLIENT_ID and
+          GOOGLE_CLIENT_SECRET are not set. Add them to .env and restart to show
+          the button. (This note only appears in development.)
+        </p>
+      )
+    }
+    return null
+  }
 
   const params = new URLSearchParams()
   if (role) params.set('role', role)

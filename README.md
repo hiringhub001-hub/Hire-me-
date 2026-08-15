@@ -71,6 +71,27 @@ always sees the applicants for jobs they posted, and can never see anyone else's
 
 ---
 
+## Testing locally before you deploy
+
+```bash
+npm run db:up          # PostgreSQL in Docker
+npm run setup:local    # migrations, demo content if empty, lists your admins
+npm run dev            # http://localhost:3000
+```
+
+`setup:local` is safe to re-run and never deletes real accounts. It prints the
+admin accounts it found and how many jobs are awaiting review.
+
+**Testing the approval flow.** Sign in as `employer@careerhub.com.ng`
+(`password123`) and post a job — it saves as `PENDING` and is deliberately not
+public. Then sign in as an admin, open the **Admin** button in the header, go to
+Moderate jobs and press Publish. The job goes live on `/jobs` immediately.
+Reject moves it to `REJECTED` and it stays hidden.
+
+Always test on **one** port. Each forwarded port in Codespaces is a separate
+hostname, so cookies set on `:3000` do not exist on `:5700` — switching ports
+looks exactly like being logged out.
+
 ## Brand assets
 
 The logo is `images/ch3.jpg`. Everything shipped is generated from it, so

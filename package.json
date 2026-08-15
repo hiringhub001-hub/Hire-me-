@@ -20,7 +20,8 @@
     "test:layout": "tsx tests/layout.ts",
     "check:live": "tsx scripts/check-live.ts",
     "test:seo": "tsx tests/seo.ts",
-    "make:admin": "tsx scripts/make-admin.ts"
+    "make:admin": "tsx scripts/make-admin.ts",
+    "setup:local": "tsx scripts/dev-setup.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

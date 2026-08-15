@@ -10,21 +10,19 @@ import { breadcrumbJsonLd, buildMetadata } from '@/lib/seo'
 import { absoluteUrl } from '@/lib/site'
 import { formatSalary, lines } from '@/lib/utils'
 
-export const revalidate = 3600
-
-export async function generateStaticParams() {
-  try {
-    const companies = await prisma.company.findMany({
-      where: { approved: true },
-      select: { slug: true },
-    })
-    return companies.map((company) => ({ slug: company.slug }))
-  } catch {
-    // Database unavailable at build time: render companies on demand instead
-    // of failing the deploy.
-    return []
-  }
-}
+/**
+ * Rendered per request, not cached as static HTML.
+ *
+ * The root layout reads the session, and `getSession` calls `cookies()`. A
+ * route with `revalidate` set is rendered in static mode, where `cookies()`
+ * throws DYNAMIC_SERVER_USAGE — so every page here that was not prerendered at
+ * build time returned 500. That is every job posted since the last deploy,
+ * which on a job board is the entire point of the site.
+ *
+ * Prerendering these was never safe anyway: a cached page bakes in signed-out
+ * header and footer chrome, so a signed-in visitor would be shown "Sign in".
+ */
+export const dynamic = 'force-dynamic'
 
 async function loadCompany(slug: string) {
   return prisma.company.findFirst({

@@ -3,23 +3,24 @@ import type { Metadata } from 'next'
 
 import {
   MIN_JOBS_FOR_LOCATION_INDEX,
-  getLocationCounts,
   getLocationLanding,
 } from '@/features/jobs/queries'
 import { JobLandingPage } from '@/features/jobs/landing-page'
 import { buildMetadata } from '@/lib/seo'
 
-export const revalidate = 1800
-
-export async function generateStaticParams() {
-  try {
-    const locations = await getLocationCounts()
-    return locations.map((location) => ({ slug: location.slug }))
-  } catch {
-    // Database unavailable at build time: render on demand instead.
-    return []
-  }
-}
+/**
+ * Rendered per request, not cached as static HTML.
+ *
+ * The root layout reads the session, and `getSession` calls `cookies()`. A
+ * route with `revalidate` set is rendered in static mode, where `cookies()`
+ * throws DYNAMIC_SERVER_USAGE — so every page here that was not prerendered at
+ * build time returned 500. That is every job posted since the last deploy,
+ * which on a job board is the entire point of the site.
+ *
+ * Prerendering these was never safe anyway: a cached page bakes in signed-out
+ * header and footer chrome, so a signed-in visitor would be shown "Sign in".
+ */
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({
   params,

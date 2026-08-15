@@ -22,7 +22,7 @@ export default function Error({
       <Container className="max-w-2xl text-center">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Something went wrong</h1>
         <p className="mt-3 text-base leading-relaxed text-slate-600 dark:text-slate-400">
-          That is our fault, not yours. Try again — and if it keeps happening, tell us on the
+           Try again — and if it keeps happening, tell us on the
           contact page and we will look into it.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">

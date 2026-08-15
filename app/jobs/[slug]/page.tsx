@@ -29,22 +29,19 @@ import { Badge, Breadcrumbs, Card, Container, JsonLd, Section } from '@/componen
 import { TrackView } from '@/components/track-view'
 import { TrackClick } from '@/components/track-click'
 
-export const revalidate = 1800
-
-export async function generateStaticParams() {
-  try {
-    const jobs = await prisma.job.findMany({
-      where: { status: 'PUBLISHED' },
-      select: { slug: true },
-      take: 100,
-    })
-    return jobs.map((job) => ({ slug: job.slug }))
-  } catch {
-    // Database unavailable at build time: render jobs on demand instead
-    // of failing the deploy.
-    return []
-  }
-}
+/**
+ * Rendered per request, not cached as static HTML.
+ *
+ * The root layout reads the session, and `getSession` calls `cookies()`. A
+ * route with `revalidate` set is rendered in static mode, where `cookies()`
+ * throws DYNAMIC_SERVER_USAGE — so every page here that was not prerendered at
+ * build time returned 500. That is every job posted since the last deploy,
+ * which on a job board is the entire point of the site.
+ *
+ * Prerendering these was never safe anyway: a cached page bakes in signed-out
+ * header and footer chrome, so a signed-in visitor would be shown "Sign in".
+ */
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({
   params,

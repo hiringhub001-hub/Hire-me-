@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
@@ -37,14 +37,34 @@ async function sign(session: Session): Promise<string> {
     .sign(key)
 }
 
+/**
+ * Whether this request actually arrived over HTTPS.
+ *
+ * Decided from the request rather than from NODE_ENV. A `Secure` cookie sent
+ * over plain HTTP is silently discarded by the browser, so keying this off
+ * NODE_ENV meant a production build running on http://localhost could sign in
+ * and be immediately logged out again — the session cookie was never stored.
+ * Vercel and the Codespaces proxy both set x-forwarded-proto.
+ */
+async function isSecureRequest(): Promise<boolean> {
+  const list = await headers()
+  const forwarded = list.get('x-forwarded-proto')
+  if (forwarded) return forwarded.split(',')[0]?.trim() === 'https'
+
+  const host = list.get('host') ?? ''
+  return !/^(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(host)
+}
+
 export async function createSession(session: Session): Promise<void> {
   const token = await sign(session)
   const store = await cookies()
   store.set(COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: await isSecureRequest(),
     sameSite: 'lax', // blocks cross-site form posts from carrying the session
     path: '/',
+    // A fixed max-age makes this a persistent cookie, so closing the browser
+    // and coming back tomorrow keeps you signed in.
     maxAge: MAX_AGE_SECONDS,
   })
 }

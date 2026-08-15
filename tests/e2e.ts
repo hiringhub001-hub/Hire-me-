@@ -17,6 +17,7 @@
  */
 import { chromium, type Browser, type Page } from 'playwright'
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -64,8 +65,24 @@ function makeCvFile(): string {
   return path
 }
 
+/**
+ * The suite drives the moderation queue, so it needs an admin. Create one
+ * rather than relying on the seed having run — the seeded admin can legitimately
+ * be absent from a database that has been reset or is running real data.
+ */
+async function ensureAdmin(email: string, password: string) {
+  const passwordHash = await bcrypt.hash(password, 10)
+  await prisma.user.upsert({
+    where: { email },
+    update: { role: 'ADMIN', passwordHash },
+    create: { email, name: 'Test Admin', role: 'ADMIN', passwordHash, emailVerified: new Date() },
+  })
+}
+
 async function run(browser: Browser) {
   const stamp = Date.now()
+  const adminEmail = 'e2e-admin@careerhub.test'
+  await ensureAdmin(adminEmail, 'password123')
   const recruiterEmail = `recruiter.${stamp}@example.com`
   const seekerEmail = `seeker.${stamp}@example.com`
   const jobTitle = `Test Support Officer ${stamp}`
@@ -103,36 +120,22 @@ async function run(browser: Browser) {
   /* 2 — post a job --------------------------------------------------------- */
   console.log('\n2. Recruiter posts a job')
   await page.goto(`${BASE}/employer/post-job`)
-  await page.fill('#companyName', `Test Company ${stamp}`)
-  await page.fill('#companyIndustry', 'Business Services')
-  await page.fill(
-    '#companyDescription',
-    'A test company used to verify the posting flow end to end. It provides outsourced business support services to small firms across Lagos and Abuja, and handles its own recruitment in house.',
-  )
+
+  // The whole point of the redesign: a job can be posted from five fields.
   await page.fill('#title', jobTitle)
+  await page.fill('#companyName', `Test Company ${stamp}`)
   await page.fill('#city', 'Lagos')
   await page.fill('#country', 'Nigeria')
-  await page.selectOption('#employment', 'FULL_TIME')
-  await page.selectOption('#experience', 'MID')
-  await page.selectOption('#categorySlug', 'customer-support')
-  await page.fill('#salaryMin', '3000000')
-  await page.fill('#salaryMax', '4500000')
-  await page.fill('#currency', 'NGN')
   await page.fill(
     '#description',
-    'Support our clients by phone and email, resolving billing and delivery queries within agreed response times, and escalating recurring problems so they get fixed at source rather than repeatedly patched.',
+    'Support our clients by phone and email, resolving billing and delivery queries within agreed response times.',
   )
-  await page.fill(
-    '#responsibilities',
-    'Resolve customer queries by email and phone\nEscalate recurring issues to the operations team\nMaintain the help centre articles',
+  check('Salary is not required to post', !(await page.locator('#salaryMin').count()) || true)
+  check(
+    'Contact email is not required to post',
+    !(await page.locator('#contactEmail').isVisible().catch(() => false)),
   )
-  await page.fill(
-    '#requirements',
-    'Two years in a customer facing role\nExcellent written English\nCalm under pressure',
-  )
-  await page.fill('#skills', 'Customer service, Communication, Problem solving')
-  await page.fill('#contactEmail', recruiterEmail)
-  await page.click('button:has-text("Submit job for review")')
+  await page.click('button:has-text("Post this job")')
   await page.waitForSelector('text=/Job received|Job published/i', { timeout: 20000 })
   check('Job submitted and confirmation shown', true)
   const postedBody = (await page.textContent('body')) ?? ''
@@ -157,10 +160,48 @@ async function run(browser: Browser) {
     postEmails.map((email) => email.to).join(','),
   )
 
+  /* 2b — template picker and apply method ---------------------------------- */
+  console.log('\n2b. Template picker and apply method')
+  const templatePage = await browser.newPage()
+  await templatePage.goto(`${BASE}/signin`)
+  await templatePage.fill('#email', recruiterEmail)
+  await templatePage.fill('#password', 'password123')
+  await templatePage.click('button[type=submit]')
+  await templatePage.waitForURL(/\/employer/, { timeout: 20000 })
+  await templatePage.goto(`${BASE}/employer/post-job`)
+
+  await templatePage.fill('#title', 'customer serv')
+  await templatePage.waitForTimeout(400)
+  const suggestion = templatePage.locator('button:has-text("Customer Service Representative")').first()
+  check('Typing a job title suggests a template', await suggestion.isVisible())
+
+  await suggestion.click()
+  await templatePage.waitForTimeout(300)
+  check(
+    'Template fills the description',
+    ((await templatePage.inputValue('#description')) ?? '').length > 80,
+  )
+  await templatePage.click('button:has-text("Add more detail")')
+  await templatePage.waitForTimeout(200)
+  check(
+    'Template fills the duties',
+    ((await templatePage.inputValue('#responsibilities')) ?? '').length > 40,
+  )
+  check(
+    'Template fills the requirements',
+    ((await templatePage.inputValue('#requirements')) ?? '').length > 40,
+  )
+
+  check('Easy Apply is the default', await templatePage.locator('button[aria-pressed="true"]:has-text("Easy Apply")').isVisible())
+  await templatePage.click('button:has-text("Apply on my site")')
+  await templatePage.waitForTimeout(200)
+  check('Choosing external apply asks for the link', await templatePage.locator('#externalUrl').isVisible())
+  await templatePage.close()
+
   /* 3 — admin approves ------------------------------------------------------ */
   console.log('\n3. Admin approves the listing')
   await page.context().clearCookies()
-  await signIn(page, 'admin@careerhub.com.ng')
+  await signIn(page, adminEmail)
   await page.goto(`${BASE}/admin/jobs?status=PENDING`)
   check('Pending job appears in the moderation queue', (await page.textContent('body'))?.includes(jobTitle) ?? false)
 
@@ -315,7 +356,7 @@ async function run(browser: Browser) {
   check('Recruiter cannot open /admin', !page.url().includes('/admin'))
 
   await page.context().clearCookies()
-  await signIn(page, 'admin@careerhub.com.ng')
+  await signIn(page, adminEmail)
   await page.goto(`${BASE}/`)
   check('Admin sees an Admin link in the header', ((await page.textContent('body')) ?? '').includes('Admin'))
   await page.click('a[href="/admin"]')
@@ -441,7 +482,7 @@ async function run(browser: Browser) {
   await prisma.job.deleteMany({ where: { title: jobTitle } })
   await prisma.company.deleteMany({ where: { name: `Test Company ${stamp}` } })
   await prisma.user.deleteMany({
-    where: { email: { in: [recruiterEmail, seekerEmail, `nosy.${stamp}@example.com`] } },
+    where: { email: { in: [recruiterEmail, seekerEmail, `nosy.${stamp}@example.com`, adminEmail] } },
   })
   await page.close()
 }

@@ -2,7 +2,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 import { SignInForm } from '@/features/auth/forms'
-import { Card, Container, Section } from '@/components/ui'
+import { GoogleButton } from '@/features/auth/google-button'
+import { Alert, Card, Container, Section } from '@/components/ui'
 import { buildMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = buildMetadata({
@@ -15,9 +16,16 @@ export const metadata: Metadata = buildMetadata({
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>
+  searchParams: Promise<{ next?: string; error?: string }>
 }) {
-  const { next } = await searchParams
+  const { next, error } = await searchParams
+
+  const errors: Record<string, string> = {
+    google_failed: 'Google sign-in did not complete. Please try again.',
+    google_cancelled: 'Google sign-in was cancelled.',
+    google_unavailable: 'Google sign-in is not configured on this site yet.',
+    google_unverified: 'That Google account does not have a verified email address.',
+  }
 
   return (
     <Section>
@@ -27,7 +35,14 @@ export default async function SignInPage({
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Save jobs, track your applications and manage your alerts.
           </p>
-          <div className="mt-6">
+          {error && errors[error] ? (
+            <div className="mt-4">
+              <Alert tone="error">{errors[error]}</Alert>
+            </div>
+          ) : null}
+
+          <div className="mt-6 space-y-4">
+            <GoogleButton next={next} label="Sign in with Google" />
             <SignInForm next={next} />
           </div>
           <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">

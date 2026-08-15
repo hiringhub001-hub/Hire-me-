@@ -52,6 +52,26 @@ export const metadata: Metadata = {
     canonical: '/',
     types: { 'application/rss+xml': `${site.url}/rss.xml` },
   },
+  // Social preview defaults for the whole site. Pages built with
+  // `buildMetadata` override these with their own title, description and URL;
+  // anything that does not — the homepage among them — inherits these rather
+  // than being shared with no image at all.
+  openGraph: {
+    type: 'website',
+    siteName: site.name,
+    locale: site.locale,
+    url: site.url,
+    title: `${site.name} — ${site.tagline}`,
+    description: site.description,
+    images: [{ url: site.ogImage, width: 1200, height: 630, alt: site.name }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: site.social.twitter,
+    title: `${site.name} — ${site.tagline}`,
+    description: site.description,
+    images: [site.ogImage],
+  },
   robots: {
     index: true,
     follow: true,

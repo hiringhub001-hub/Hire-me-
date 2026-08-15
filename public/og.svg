@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <rect width="1200" height="630" fill="#0f172a"/>
-  <rect x="60" y="60" width="84" height="84" rx="20" fill="#1c5df5"/>
-  <text x="102" y="116" font-family="system-ui, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle">HM</text>
-  <text x="60" y="300" font-family="system-ui, sans-serif" font-size="72" font-weight="800" fill="#ffffff">Hire Me</text>
-  <text x="60" y="370" font-family="system-ui, sans-serif" font-size="34" fill="#94a3b8">Jobs, career guides and tools</text>
-  <text x="60" y="420" font-family="system-ui, sans-serif" font-size="34" fill="#94a3b8">that actually help you get hired</text>
-</svg>

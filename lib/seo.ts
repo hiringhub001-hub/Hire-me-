@@ -26,7 +26,7 @@ export function buildMetadata({
   noIndex,
 }: SeoInput): Metadata {
   const url = absoluteUrl(path)
-  const ogImage = image ?? absoluteUrl('/og.svg')
+  const ogImage = image ?? absoluteUrl(site.ogImage)
 
   return {
     title,
@@ -77,6 +77,9 @@ export function organizationJsonLd() {
     name: site.name,
     url: site.url,
     description: site.description,
+    // Google shows this next to the site in search results and Knowledge Panel.
+    logo: absoluteUrl(site.logo),
+    image: absoluteUrl(site.logo),
     email: site.email,
     foundingDate: String(site.founded),
     sameAs: [site.social.linkedin],

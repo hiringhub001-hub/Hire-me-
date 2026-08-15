@@ -35,6 +35,10 @@ export const site = {
   adminEmail: process.env.ADMIN_EMAIL ?? 'hiringhub001@gmail.com',
   /** From address on outbound mail. Must be a domain verified with Resend. */
   fromEmail: process.env.EMAIL_FROM ?? 'CareerHub <notifications@careerhub.com.ng>',
+  /** Square brand mark, used for the header, emails and structured data. */
+  logo: '/logo.png',
+  /** 1200x630 social preview. */
+  ogImage: '/og.png',
   address: 'Remote-first — registered office details available on request',
   founded: 2024,
   social: {

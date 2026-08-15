@@ -197,7 +197,11 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             {/* Header ---------------------------------------------------- */}
             <header className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
               <div className="flex flex-wrap items-center gap-2">
-                <SourceBadge source={job.source} sourceName={job.sourceName} />
+                <SourceBadge
+                  source={job.source}
+                  sourceName={job.sourceName}
+                  easyApply={job.allowInternal}
+                />
                 {job.featured ? <Badge tone="warning">Featured</Badge> : null}
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   Posted {timeAgo(job.postedAt)}

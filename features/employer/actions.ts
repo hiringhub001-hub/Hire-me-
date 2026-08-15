@@ -12,44 +12,43 @@ import { fail, fieldErrors, ok, type ActionState } from '@/lib/action-state'
 import { slugify } from '@/lib/utils'
 
 const postJobSchema = z.object({
+  // Required: the four things a listing genuinely cannot exist without.
   title: z.string().trim().min(3, 'Enter the job title').max(140),
   companyName: z.string().trim().min(2, 'Enter the company name').max(140),
-  companyIndustry: z.string().trim().min(2, 'Enter the industry').max(80),
-  companyDescription: z
-    .string()
-    .trim()
-    .min(80, 'Write at least a short paragraph about the company — this appears on your profile page')
-    .max(4000),
-  companyWebsite: z.string().trim().url('Enter a full URL').max(300).optional().or(z.literal('')),
   city: z.string().trim().min(2, 'Enter a city, or "Remote"').max(80),
   country: z.string().trim().min(2, 'Enter a country').max(80),
-  workMode: z.enum(['ONSITE', 'HYBRID', 'REMOTE']),
-  employment: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY']),
-  experience: z.enum(['ENTRY', 'JUNIOR', 'MID', 'SENIOR', 'LEAD']),
-  categorySlug: z.string().trim().optional().or(z.literal('')),
-  salaryMin: z.coerce.number().int().min(0).max(100_000_000).optional().or(z.literal(0)),
-  salaryMax: z.coerce.number().int().min(0).max(100_000_000).optional().or(z.literal(0)),
-  salaryPeriod: z.enum(['HOUR', 'MONTH', 'YEAR']).default('YEAR'),
-  currency: z.string().trim().length(3, 'Use a three-letter currency code').toUpperCase(),
   description: z
     .string()
     .trim()
-    .min(100, 'Describe the role in at least a short paragraph')
+    .min(40, 'Add a few lines about the role — pick a template above if it helps')
     .max(8000),
-  responsibilities: z.string().trim().min(10, 'List at least one responsibility').max(4000),
-  requirements: z.string().trim().min(10, 'List at least one requirement').max(4000),
+
+  // How candidates apply. Everything else about the listing is optional.
+  applyMethod: z.enum(['EASY', 'EXTERNAL']).default('EASY'),
+  externalUrl: z.string().trim().max(600).optional().or(z.literal('')),
+  externalBoard: z.enum(['LINKEDIN', 'INDEED', 'GLASSDOOR', 'OTHER']).default('OTHER'),
+
+  // Optional detail. A blank field here must never block a posting.
+  companyIndustry: z.string().trim().max(80).optional().or(z.literal('')),
+  companyDescription: z.string().trim().max(4000).optional().or(z.literal('')),
+  companyWebsite: z.string().trim().max(300).optional().or(z.literal('')),
+  workMode: z.enum(['ONSITE', 'HYBRID', 'REMOTE']).default('ONSITE'),
+  employment: z
+    .enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY'])
+    .default('FULL_TIME'),
+  experience: z.enum(['ENTRY', 'JUNIOR', 'MID', 'SENIOR', 'LEAD']).default('MID'),
+  categorySlug: z.string().trim().optional().or(z.literal('')),
+  salaryMin: z.coerce.number().int().min(0).max(1_000_000_000).optional().or(z.literal(0)),
+  salaryMax: z.coerce.number().int().min(0).max(1_000_000_000).optional().or(z.literal(0)),
+  salaryPeriod: z.enum(['HOUR', 'MONTH', 'YEAR']).default('MONTH'),
+  currency: z.string().trim().max(3).optional().or(z.literal('')),
+  responsibilities: z.string().trim().max(4000).optional().or(z.literal('')),
+  requirements: z.string().trim().max(4000).optional().or(z.literal('')),
   benefits: z.string().trim().max(2000).optional().or(z.literal('')),
-  skills: z.string().trim().min(2, 'List the key skills, comma separated').max(400),
-  source: z.enum(['DIRECT', 'LINKEDIN', 'INDEED', 'GLASSDOOR', 'OTHER']).default('DIRECT'),
-  externalUrl: z
-    .string()
-    .trim()
-    .url('Enter the full application URL')
-    .max(600)
-    .optional()
-    .or(z.literal('')),
-  allowInternal: z.string().optional(),
-  contactEmail: z.string().trim().email('Enter a valid contact email'),
+  skills: z.string().trim().max(400).optional().or(z.literal('')),
+  // Defaults to the signed-in recruiter's own address — we already know it, so
+  // asking again is one more field between them and a posted job.
+  contactEmail: z.string().trim().max(200).optional().or(z.literal('')),
 })
 
 /** Ensures a slug is unique by appending a counter when needed. */
@@ -75,13 +74,28 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
   }
 
   const values = parsed.data
+  const isEasyApply = values.applyMethod === 'EASY'
 
-  // A listing sourced from a partner board must link somewhere.
-  if (values.source !== 'DIRECT' && !values.externalUrl) {
-    return fail('Add the application URL on the partner site.', {
-      externalUrl: 'Required when the listing comes from another board',
-    })
+  // The only conditional requirement left: if candidates apply elsewhere, we
+  // need to know where. Accept a bare domain and repair it rather than
+  // rejecting — "acme.com/careers" is what people actually type.
+  let externalUrl = values.externalUrl?.trim() ?? ''
+  if (!isEasyApply) {
+    if (!externalUrl) {
+      return fail('Add the link where candidates should apply.', {
+        externalUrl: 'Required when candidates apply on your own site',
+      })
+    }
+    if (!/^https?:\/\//i.test(externalUrl)) externalUrl = `https://${externalUrl}`
+    try {
+      new URL(externalUrl)
+    } catch {
+      return fail('That application link does not look like a valid web address.', {
+        externalUrl: 'Enter a link such as https://yourcompany.com/careers',
+      })
+    }
   }
+
   if (values.salaryMin && values.salaryMax && values.salaryMin > values.salaryMax) {
     return fail('The minimum salary is higher than the maximum.', {
       salaryMin: 'Must be lower than the maximum',
@@ -100,8 +114,12 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
       data: {
         slug: companySlug,
         name: values.companyName,
-        industry: values.companyIndustry,
-        description: values.companyDescription,
+        industry: values.companyIndustry || 'General',
+        // A company profile still needs something readable on it, so fall back
+        // to a plain factual line rather than blocking the posting.
+        description:
+          values.companyDescription ||
+          `${values.companyName} is hiring in ${values.city}, ${values.country}. This profile was created from a job posting and has not yet been expanded by the employer.`,
         website: values.companyWebsite || null,
         headquarters: `${values.city}, ${values.country}`,
         ownerId: session.role === 'EMPLOYER' ? session.userId : null,
@@ -135,18 +153,21 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
       salaryMin: values.salaryMin || null,
       salaryMax: values.salaryMax || null,
       salaryPeriod: values.salaryPeriod,
-      currency: values.currency,
-      skills: values.skills,
-      responsibilities: values.responsibilities,
-      requirements: values.requirements,
+      currency: (values.currency || 'NGN').toUpperCase(),
+      skills: values.skills || '',
+      responsibilities: values.responsibilities || '',
+      requirements: values.requirements || '',
       benefits: values.benefits || null,
-      source: values.source,
-      sourceName:
-        values.source === 'DIRECT'
-          ? null
-          : values.source.charAt(0) + values.source.slice(1).toLowerCase(),
-      externalUrl: values.externalUrl || null,
-      allowInternal: values.source === 'DIRECT' ? true : values.allowInternal === 'on',
+      // Easy Apply keeps the application here; otherwise the candidate is sent
+      // to the employer's own page, exactly like LinkedIn's two modes.
+      source: isEasyApply ? 'DIRECT' : values.externalBoard,
+      sourceName: isEasyApply
+        ? null
+        : values.externalBoard === 'OTHER'
+          ? 'the employer site'
+          : values.externalBoard.charAt(0) + values.externalBoard.slice(1).toLowerCase(),
+      externalUrl: isEasyApply ? null : externalUrl,
+      allowInternal: isEasyApply,
       // Everything is reviewed before publication. This is the main control
       // that keeps low-quality and fraudulent listings off the public site, and
       // it is part of what an AdSense reviewer is assessing. Set
@@ -161,7 +182,11 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
     },
   })
 
-  await logAudit('job.created', 'Job', job.id, { title: job.title, source: job.source })
+  await logAudit('job.created', 'Job', job.id, {
+    title: job.title,
+    source: job.source,
+    applyMethod: values.applyMethod,
+  })
 
   // Confirmation to the recruiter and a copy to the admin moderation queue.
   await sendJobPostedEmails({
@@ -171,7 +196,8 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
     companyName: company.name,
     location: job.workMode === 'REMOTE' ? `Remote — ${job.country}` : `${job.city}, ${job.country}`,
     status: job.status,
-    recruiterEmail: values.contactEmail,
+    // Falls back to the account we already have on file.
+    recruiterEmail: values.contactEmail || session.email,
     recruiterName: session.name,
     source: job.source,
     externalUrl: job.externalUrl,

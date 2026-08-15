@@ -22,7 +22,8 @@
     "test:seo": "tsx tests/seo.ts",
     "make:admin": "tsx scripts/make-admin.ts",
     "setup:local": "tsx scripts/dev-setup.ts",
-    "db:doctor": "tsx scripts/db-doctor.ts"
+    "db:doctor": "tsx scripts/db-doctor.ts",
+    "audit:ads": "tsx tests/ads-audit.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -20,12 +20,17 @@ export default async function SignInPage({
 }) {
   const { next, error } = await searchParams
 
-  const errors: Record<string, string> = {
-    google_failed: 'Google sign-in did not complete. Please try again.',
-    google_cancelled: 'Google sign-in was cancelled.',
-    google_unavailable: 'Google sign-in is not configured on this site yet.',
-    google_unverified: 'That Google account does not have a verified email address.',
-  }
+  // A Map, not an object literal. `error` comes straight from the query string,
+  // so an object lookup also reaches Object.prototype: /signin?error=toString
+  // returned a function, React was handed a function as a child, and the page
+  // died with "Something went wrong" instead of ignoring an unknown code.
+  const errors = new Map([
+    ['google_failed', 'Google sign-in did not complete. Please try again.'],
+    ['google_cancelled', 'Google sign-in was cancelled.'],
+    ['google_unavailable', 'Google sign-in is not configured on this site yet.'],
+    ['google_unverified', 'That Google account does not have a verified email address.'],
+  ])
+  const errorMessage = error ? errors.get(error) : undefined
 
   return (
     <Section>
@@ -35,9 +40,9 @@ export default async function SignInPage({
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Save jobs, track your applications and manage your alerts.
           </p>
-          {error && errors[error] ? (
+          {errorMessage ? (
             <div className="mt-4">
-              <Alert tone="error">{errors[error]}</Alert>
+              <Alert tone="error">{errorMessage}</Alert>
             </div>
           ) : null}
 

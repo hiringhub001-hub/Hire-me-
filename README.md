@@ -71,6 +71,26 @@ always sees the applicants for jobs they posted, and can never see anyone else's
 
 ---
 
+## Brand assets
+
+The logo is `images/ch3.jpg`. Everything shipped is generated from it, so
+replacing that one file and re-running the generator updates the site, the
+browser tab, the installed app icon and the social preview together:
+
+| Output | Used for |
+| --- | --- |
+| `app/icon.png` | Browser tab favicon (Next file convention) |
+| `app/apple-icon.png` | iOS home screen |
+| `public/logo.png` | Header, footer, emails, `Organization` structured data |
+| `public/logo-192.png`, `public/logo-512.png` | PWA manifest / install prompt |
+| `public/og.png` | 1200x630 social preview for Google, LinkedIn, X, WhatsApp |
+
+Two things worth knowing if you regenerate them. The square icons are cropped to
+the mark rather than resized whole — the source has wide empty margins, and a
+straight resize spends most of a 32px favicon on background. The social image is
+a wide crop of the source rather than the logo pasted onto a flat colour, which
+avoids a visible seam where the tile meets the background.
+
 ## Admin access
 
 There is **one** way in, and it is invisible to everyone else.

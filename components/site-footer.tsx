@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 import { site } from '@/lib/site'
@@ -75,9 +76,13 @@ export function SiteFooter({ role }: { role: string | null }) {
         >
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-sm font-black text-white">
-                HM
-              </span>
+              <Image
+                src={site.logo}
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded-xl object-cover"
+              />
               {site.name}
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">

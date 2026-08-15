@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 import { getSession } from '@/lib/auth'
@@ -46,9 +47,14 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
       <Container className="flex h-16 items-center gap-3">
         <Link href="/" className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-sm font-black text-white">
-            CH
-          </span>
+          <Image
+            src={site.logo}
+            alt=""
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-9 rounded-xl object-cover"
+          />
           <span className="text-lg">{site.name}</span>
         </Link>
 

@@ -9,12 +9,14 @@ export default function manifest(): MetadataRoute.Manifest {
     description: site.description,
     start_url: '/',
     display: 'standalone',
-    background_color: '#ffffff',
+    background_color: '#587898',
     theme_color: '#1c5df5',
     orientation: 'portrait',
     categories: ['business', 'education', 'productivity'],
     icons: [
-      { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+      { src: '/logo-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }
 }

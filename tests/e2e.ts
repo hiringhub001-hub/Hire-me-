@@ -26,6 +26,31 @@ const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3200'
 const ADMIN_INBOX = process.env.ADMIN_EMAIL ?? 'hiringhub001@gmail.com'
 const prisma = new PrismaClient()
 
+/**
+ * This suite creates and deletes users, jobs and applications. Pointing it at a
+ * live database would churn real data, and DATABASE_URL in .env is easily left
+ * pointing at production after a debugging session — so refuse unless the
+ * target is obviously local, or the intent is stated explicitly.
+ */
+function assertSafeDatabase() {
+  const url = process.env.DATABASE_URL ?? ''
+  const isLocal = /@(localhost|127\.0\.0\.1|postgres|db)[:/]/.test(url)
+  if (isLocal || process.env.ALLOW_DESTRUCTIVE_TESTS === 'true') return
+
+  const redacted = url.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')
+  console.error(`
+Refusing to run: DATABASE_URL does not look local.
+
+  ${redacted || '(unset)'}
+
+This suite creates and deletes users, jobs and applications. Point DATABASE_URL
+at your local database (npm run db:up) and try again.
+
+If you really mean to run it here, set ALLOW_DESTRUCTIVE_TESTS=true.
+`)
+  process.exit(1)
+}
+
 let passed = 0
 let failed = 0
 
@@ -488,6 +513,7 @@ async function run(browser: Browser) {
 }
 
 async function main() {
+  assertSafeDatabase()
   const browser = await chromium.launch()
   try {
     await run(browser)

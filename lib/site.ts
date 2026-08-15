@@ -7,9 +7,9 @@ export const site = {
   name: 'CareerHub',
   shortName: 'CareerHub',
   domain: 'careerhub.com.ng',
-  tagline: 'Jobs, career guides and tools that actually help you get hired',
+  tagline: 'Find jobs in Nigeria, the UK and remote',
   description:
-    'CareerHub is a career resource centre. Search verified jobs, apply in one place, and use free guides, salary data and resume tools written by working recruiters.',
+    'CareerHub is a job board and career resource centre. Search verified jobs in Nigeria, the UK and remote roles worldwide, apply in one place, and use free CV tools, salary guides and interview preparation written by working recruiters.',
   /**
    * Canonical origin. Everything user-visible derives from this: metadata,
    * canonicals, Open Graph, JSON-LD, the sitemap, the RSS and job feeds, and

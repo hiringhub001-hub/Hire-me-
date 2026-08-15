@@ -46,10 +46,12 @@ export async function generateMetadata({
   if (filters.workMode === 'REMOTE') parts.push('remote')
   if (filters.location) parts.push(`in ${filters.location}`)
 
-  const title = parts.length ? `${parts.join(' ')} jobs` : 'Browse all jobs'
+  const title = parts.length
+    ? `${parts.join(' ')} jobs`
+    : 'Job Search — Latest Jobs in Nigeria, UK and Remote'
   const description = parts.length
     ? `Current ${parts.join(' ')} vacancies, each with our own skills breakdown, salary context and interview preparation.`
-    : 'Search jobs from direct employers and partner boards including LinkedIn and Indeed. Every listing includes original guidance on skills, salary and interview preparation.'
+    : 'Browse the latest job vacancies in Nigeria, the UK and remote roles worldwide. Full-time, part-time, contract and entry-level jobs, each with a skills breakdown, salary context and interview preparation.'
 
   return buildMetadata({
     title,

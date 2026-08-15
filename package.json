@@ -7,7 +7,7 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
@@ -21,7 +21,8 @@
     "check:live": "tsx scripts/check-live.ts",
     "test:seo": "tsx tests/seo.ts",
     "make:admin": "tsx scripts/make-admin.ts",
-    "setup:local": "tsx scripts/dev-setup.ts"
+    "setup:local": "tsx scripts/dev-setup.ts",
+    "db:doctor": "tsx scripts/db-doctor.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

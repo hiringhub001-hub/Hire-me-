@@ -71,6 +71,25 @@ always sees the applicants for jobs they posted, and can never see anyone else's
 
 ---
 
+## Deploy is not updating
+
+The Vercel build runs `prisma generate && prisma migrate deploy && next build`.
+If any step fails the deploy fails, and the site keeps serving the previous
+build — which looks like "my changes did not go out" rather than an error. Check
+Vercel → Deployments → the most recent one → Build Logs first.
+
+For the database half of that, `npm run db:doctor` reports connectivity,
+migration history and what is still to apply. Point it at production to check
+the live database:
+
+```bash
+DATABASE_URL="<production-url>" npm run db:doctor
+```
+
+It names the exact fix for the common cases — a database created with
+`db push` (P3005), a migration that started and never finished, and a pooled
+connection string that cannot run DDL.
+
 ## Testing locally before you deploy
 
 ```bash
@@ -87,6 +106,10 @@ admin accounts it found and how many jobs are awaiting review.
 public. Then sign in as an admin, open the **Admin** button in the header, go to
 Moderate jobs and press Publish. The job goes live on `/jobs` immediately.
 Reject moves it to `REJECTED` and it stays hidden.
+
+`npm run test:e2e` refuses to run unless `DATABASE_URL` looks local, because it
+creates and deletes users and jobs. Override with `ALLOW_DESTRUCTIVE_TESTS=true`
+only if you are certain.
 
 Always test on **one** port. Each forwarded port in Codespaces is a separate
 hostname, so cookies set on `:3000` do not exist on `:5700` — switching ports
@@ -228,11 +251,16 @@ work applying will be.
 Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and a "Continue with Google" button appears on
 sign-in and sign-up. Until then it renders nothing — there is never a button that fails when
 pressed. Create the credentials at Google Cloud → APIs & Services → Credentials (type: Web
-application) and register this exact redirect URI:
+application). The redirect URI is derived from the request host, so register one
+per origin you sign in from:
 
 ```
-https://careerhub.com.ng/api/auth/google/callback
+https://careerhub.com.ng/api/auth/google/callback     production
+http://localhost:3000/api/auth/google/callback        local development
 ```
+
+The client secret is a real credential: it belongs in `.env` and in the Vercel
+environment settings, never in `.env.example`, which is committed.
 
 Accounts created this way have no password; signing in with one at the password form gets a clear
 message pointing at the Google button rather than "incorrect password". An existing account with the

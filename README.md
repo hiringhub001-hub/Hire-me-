@@ -390,6 +390,28 @@ server-rendered, so it is in the HTML source that crawlers read.
 - **Semantic, accessible HTML** — one `h1` per page, ordered headings, real buttons and labels,
   skip link, visible focus rings, 44px touch targets, `prefers-reduced-motion` respected.
 
+### Auditing readiness
+
+`npm run audit:ads` checks what a reviewer and the automated policy scan look
+at, and can be pointed at production:
+
+```bash
+E2E_BASE_URL=https://careerhub.com.ng npm run audit:ads
+```
+
+36 checks: all eight policy pages present and substantial, word counts on every
+page type (thin content is the top rejection reason), title/description/canonical
+everywhere, exactly one AdSense loader in `<head>`, `ads.txt` authorising the
+same publisher the page declares, zero ad units while awaiting approval, cookie
+notice and privacy disclosure, no broken internal links, no placeholder text,
+and the admin area being invisible and unreachable to the public.
+
+On the IDs held in `lib/site.ts`: the AdSense publisher ID and GA measurement ID
+are public values that appear in the page source of every site that uses them.
+Keeping them in code rather than an environment variable has no bearing on
+AdSense policy — it exists so a missing variable in Vercel cannot silently ship
+a page with no tag on it, which is what happened twice before.
+
 ### Before you apply to AdSense
 
 1. **Deploy to a real domain** and set `NEXT_PUBLIC_SITE_URL`. AdSense will not approve

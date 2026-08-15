@@ -375,15 +375,35 @@ async function run(browser: Browser) {
 
   /* 7c — admin dashboard is admin-only ------------------------------------- */
   console.log('\n7c. Admin dashboard visibility')
-  const recruiterBody = (await page.textContent('body')) ?? ''
-  check('Recruiter is shown no Admin link', !/>Admin</.test(recruiterBody))
+
+  // Counting the link is more reliable than matching text: the button carries a
+  // pending-count badge, so its text renders as "Admin1".
+  const adminLinks = async () => page.locator('header a[href="/admin"]').count()
+
+  await page.goto(`${BASE}/`)
+  check('Recruiter is shown no Admin link', (await adminLinks()) === 0)
   await page.goto(`${BASE}/admin`)
   check('Recruiter cannot open /admin', !page.url().includes('/admin'))
+
+  // A job seeker must not see it either.
+  await page.context().clearCookies()
+  await signIn(page, seekerEmail)
+  await page.goto(`${BASE}/`)
+  check('Job seeker is shown no Admin link', (await adminLinks()) === 0)
+  await page.goto(`${BASE}/admin`)
+  check('Job seeker cannot open /admin', !page.url().includes('/admin'))
+
+  // Nor a signed-out visitor.
+  await page.context().clearCookies()
+  await page.goto(`${BASE}/`)
+  check('Signed-out visitor is shown no Admin link', (await adminLinks()) === 0)
+  const anonAdmin = await page.request.get(`${BASE}/admin`, { maxRedirects: 0 })
+  check('Signed-out visitor is redirected from /admin', anonAdmin.status() === 307)
 
   await page.context().clearCookies()
   await signIn(page, adminEmail)
   await page.goto(`${BASE}/`)
-  check('Admin sees an Admin link in the header', ((await page.textContent('body')) ?? '').includes('Admin'))
+  check('Admin sees an Admin link in the header', (await page.locator('header a[href="/admin"]').count()) > 0)
   await page.click('a[href="/admin"]')
   await page.waitForURL(/\/admin/, { timeout: 15000 })
   check('Admin link opens the dashboard', page.url().includes('/admin'))

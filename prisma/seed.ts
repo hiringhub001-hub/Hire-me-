@@ -622,26 +622,70 @@ const jobs: SeedJob[] = [
   },
 ]
 
+/**
+ * Demo companies and job adverts are illustrative — the employers do not exist
+ * and their websites are example.com. They must never reach a live site: Google
+ * AdSense treats invented listings as misleading content, and a job seeker
+ * applying to one is being wasted.
+ *
+ * They stay in this file because they are useful for local development, but
+ * they are only created when you ask for them explicitly:
+ *
+ *   SEED_DEMO_CONTENT=true npm run db:seed
+ */
+const SEED_DEMO_CONTENT = process.env.SEED_DEMO_CONTENT === 'true'
+
 async function main() {
   console.log('Seeding…')
 
-  // Idempotent for CONTENT only. Real user accounts are never deleted: this
-  // script gets run against databases that already have live registrations, and
-  // wiping those would destroy the site's actual users.
-  await prisma.application.deleteMany()
-  await prisma.savedJob.deleteMany()
-  await prisma.jobFaq.deleteMany()
-  await prisma.job.deleteMany()
-  await prisma.companyLocation.deleteMany()
-  await prisma.companyReview.deleteMany()
-  await prisma.company.deleteMany()
-  await prisma.category.deleteMany()
-  await prisma.comment.deleteMany()
-  await prisma.post.deleteMany()
-  await prisma.document.deleteMany()
-  await prisma.jobAlert.deleteMany()
-  await prisma.auditLog.deleteMany()
-  await prisma.emailLog.deleteMany()
+  // Categories are taxonomy with editorial descriptions, and the articles are
+  // original guides written for this site. Both are real content and are always
+  // kept in step. Nothing else here is destructive: live jobs, companies,
+  // applications and user accounts are left exactly as they are.
+  for (const category of categories) {
+    await prisma.category.upsert({
+      where: { slug: category.slug },
+      update: { name: category.name, description: category.description },
+      create: category,
+    })
+  }
+  console.log(`  categories: ${categories.length} (upserted)`)
+
+  for (const article of allArticles) {
+    const data = {
+      kind: article.kind,
+      title: article.title,
+      excerpt: article.excerpt,
+      body: JSON.stringify({ sections: article.sections, faqs: article.faqs ?? [] }),
+      category: article.category,
+      tags: article.tags.join(', '),
+      authorName: article.authorName,
+      authorRole: article.authorRole,
+      readMinutes: article.readMinutes,
+      published: true,
+    }
+    await prisma.post.upsert({
+      where: { kind_slug: { kind: article.kind, slug: article.slug } },
+      update: data,
+      create: { ...data, slug: article.slug, publishedAt: new Date(article.publishedAt) },
+    })
+  }
+  console.log(`  articles: ${allArticles.length} (upserted)`)
+
+  if (!SEED_DEMO_CONTENT) {
+    const jobCount = await prisma.job.count()
+    console.log(`
+Skipped demo companies and job adverts — they are illustrative and must not
+appear on a live site. Left the ${jobCount} existing job(s) untouched.
+
+For a local sandbox with sample listings:
+  SEED_DEMO_CONTENT=true npm run db:seed
+`)
+    return
+  }
+
+  console.log('\n  SEED_DEMO_CONTENT=true — creating illustrative demo content.')
+  console.log('  Do not run this against production.\n')
 
   const password = await bcrypt.hash('password123', 10)
 
@@ -685,14 +729,12 @@ async function main() {
     },
   })
 
-  for (const category of categories) {
-    await prisma.category.create({ data: category })
-  }
-
   for (const [index, company] of companies.entries()) {
     const [city = 'Remote', country = 'United Kingdom'] = company.headquarters.split(', ')
-    await prisma.company.create({
-      data: {
+    await prisma.company.upsert({
+      where: { slug: company.slug },
+      update: {},
+      create: {
         ...company,
         approved: true,
         featured: index < 3,
@@ -711,13 +753,14 @@ async function main() {
 
   for (const job of jobs) {
     const postedAt = new Date(Date.now() - job.daysAgo * 24 * 60 * 60 * 1000)
-    // 30 days from posting, matching what the post-job flow sets.
     const expiresAt = new Date(postedAt.getTime() + 30 * 24 * 60 * 60 * 1000)
     const companyId = companyMap.get(job.company)
     if (!companyId) throw new Error(`Unknown company: ${job.company}`)
 
-    await prisma.job.create({
-      data: {
+    await prisma.job.upsert({
+      where: { slug: job.slug },
+      update: {},
+      create: {
         slug: job.slug,
         title: job.title,
         description: job.description,
@@ -753,75 +796,8 @@ async function main() {
     })
   }
 
-  for (const article of allArticles) {
-    await prisma.post.create({
-      data: {
-        slug: article.slug,
-        kind: article.kind,
-        title: article.title,
-        excerpt: article.excerpt,
-        body: JSON.stringify({ sections: article.sections, faqs: article.faqs ?? [] }),
-        category: article.category,
-        tags: article.tags.join(', '),
-        authorName: article.authorName,
-        authorRole: article.authorRole,
-        readMinutes: article.readMinutes,
-        published: true,
-        publishedAt: new Date(article.publishedAt),
-      },
-    })
-  }
-
-  // A couple of approved reviews so company pages have community content.
-  const northwind = companyMap.get('northwind-labs')
-  if (northwind) {
-    await prisma.companyReview.createMany({
-      data: [
-        {
-          companyId: northwind,
-          authorName: 'Former engineer',
-          jobTitle: 'Frontend Developer',
-          rating: 4,
-          title: 'Small team, real ownership',
-          body: 'You talk to customers directly, which is unusual and makes the work feel connected to something. Two office days is genuinely two, not a slow creep back to five. Progression is less structured than at a larger firm, so you have to ask for it.',
-          pros: 'Customer contact, written culture, honest interview process',
-          cons: 'Progression framework is thin; tooling budget is tight',
-          approved: true,
-        },
-        {
-          companyId: northwind,
-          authorName: 'Current employee',
-          jobTitle: 'Operations Coordinator',
-          rating: 5,
-          title: 'The rota and planning actually work',
-          body: 'Coming from a company where everything was last minute, having decisions written down before meetings has been a genuine relief. Managers here read the documents.',
-          pros: 'Planning discipline, flexible hours, supportive manager',
-          cons: 'Small company means occasional single points of failure',
-          approved: true,
-        },
-      ],
-    })
-  }
-
-  await prisma.savedJob.create({
-    data: {
-      userId: candidate.id,
-      jobId: (await prisma.job.findFirstOrThrow({ where: { slug: 'frontend-developer-manchester' } }))
-        .id,
-    },
-  })
-
-  await prisma.setting.upsert({
-    where: { key: 'seeded_at' },
-    update: { value: new Date().toISOString() },
-    create: { key: 'seeded_at', value: new Date().toISOString() },
-  })
-
-  console.log(`Seeded ${categories.length} categories, ${companies.length} companies, ${jobs.length} jobs, ${allArticles.length} articles.`)
-  console.log('Demo logins (password: password123)')
-  console.log(`  admin:     ${admin.email}`)
-  console.log(`  employer:  ${employer.email}`)
-  console.log(`  candidate: ${candidate.email}`)
+  console.log(`  demo: ${companies.length} companies, ${jobs.length} jobs`)
+  console.log('  logins (password123):', admin.email, employer.email, candidate.email)
 }
 
 main()

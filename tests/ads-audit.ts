@@ -193,15 +193,18 @@ async function main() {
 
   /* 8 — placeholder content --------------------------------------------------- */
   console.log('\n8. Placeholder content a reviewer would notice')
+  // A failure, not a warning. An invented employer is misleading content under
+  // AdSense policy, and on a job board it also wastes a real applicant's time.
   let placeholders = 0
   for (const path of ['/', '/jobs', '/companies']) {
     const { html } = await get(path)
-    if (/example\.com|lorem ipsum|coming soon|under construction/i.test(html)) {
+    const hit = /example\.com|lorem ipsum|coming soon|under construction/i.exec(html)
+    if (hit) {
       placeholders += 1
-      caution(`${path} contains placeholder text`, 'example.com / lorem ipsum / coming soon')
+      bad(`${path} contains placeholder content`, `matched "${hit[0]}"`)
     }
   }
-  if (!placeholders) ok('No placeholder text on key pages')
+  if (!placeholders) ok('No placeholder or demo content on key pages')
 
   /* 9 — admin surface --------------------------------------------------------- */
   console.log('\n9. Admin surface is not public')

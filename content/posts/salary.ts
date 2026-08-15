@@ -9,8 +9,8 @@ export const salaryArticles: ArticleSeed[] = [
       'What frontend developers earn by experience level and location, which factors move pay the most, and how to work out your own number before a negotiation.',
     category: 'Technology',
     tags: ['salary', 'frontend', 'developer'],
-    authorName: 'Marcus Lin',
-    authorRole: 'Compensation consultant',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Pay and compensation desk',
     readMinutes: 8,
     publishedAt: '2026-03-11',
     sections: [
@@ -93,8 +93,8 @@ export const salaryArticles: ArticleSeed[] = [
       'Pay ranges for data analysts by level, the difference between analyst and analytics engineer pay, and where the ceiling sits before you need to specialise.',
     category: 'Data',
     tags: ['salary', 'data', 'analyst'],
-    authorName: 'Marcus Lin',
-    authorRole: 'Compensation consultant',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Pay and compensation desk',
     readMinutes: 7,
     publishedAt: '2026-04-02',
     sections: [
@@ -149,8 +149,8 @@ export const salaryArticles: ArticleSeed[] = [
       'How nursing pay is structured, why shift differentials matter more than the headline rate, and what specialisation is worth.',
     category: 'Healthcare',
     tags: ['salary', 'nursing', 'healthcare'],
-    authorName: 'Priya Raman',
-    authorRole: 'Career coach',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Career development desk',
     readMinutes: 6,
     publishedAt: '2026-05-06',
     sections: [

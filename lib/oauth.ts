@@ -32,10 +32,21 @@ export const googleEnabled = Boolean(
 export async function googleRedirectUri(): Promise<string> {
   try {
     const list = await headers()
-    const host = list.get('host')
+
+    // x-forwarded-host before host. Behind a proxy — Codespaces port
+    // forwarding, a tunnel, most load balancers — `host` is the address the
+    // proxy dialled internally, often literally localhost:3000, while
+    // x-forwarded-proto describes the browser's connection. Reading one from
+    // each produced https://localhost:3000/..., a URI that exists nowhere and
+    // that Google rejects with redirect_uri_mismatch.
+    const forwardedHost = list.get('x-forwarded-host')?.split(',')[0]?.trim()
+    const host = forwardedHost || list.get('host')
+
     if (host) {
-      const proto = list.get('x-forwarded-proto')?.split(',')[0]?.trim()
-        ?? (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? 'http' : 'https')
+      const forwardedProto = list.get('x-forwarded-proto')?.split(',')[0]?.trim()
+      const isLoopback = /^(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(host)
+      // A loopback host is never reachable over https, whatever the proxy says.
+      const proto = isLoopback ? 'http' : forwardedProto || 'https'
       return `${proto}://${host}/api/auth/google/callback`
     }
   } catch {

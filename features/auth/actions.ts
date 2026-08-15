@@ -27,6 +27,20 @@ function safeRedirect(next: string | undefined, fallback: string): string {
   return fallback
 }
 
+/**
+ * Where signing in lands you.
+ *
+ * The homepage, whatever your role. Signing in is not the same as asking for
+ * your dashboard: most people sign in to carry on browsing jobs, and being
+ * thrown into an admin or employer console instead is disorienting. The
+ * role-aware header and bottom nav still link onward for anyone who wants it.
+ *
+ * A `next` parameter — set when a signed-out visitor is bounced off a protected
+ * page — still wins, so you resume exactly where you were interrupted.
+ */
+const SIGN_IN_HOME = '/'
+
+/** Where registering lands you: the dashboard for the role just created. */
 function homeFor(role: Role): string {
   if (role === 'ADMIN') return '/admin'
   if (role === 'EMPLOYER') return '/employer'
@@ -81,7 +95,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
     role: user.role as Role,
   })
 
-  redirect(safeRedirect(next, homeFor(user.role as Role)))
+  redirect(safeRedirect(next, SIGN_IN_HOME))
 }
 
 const signUpSchema = z

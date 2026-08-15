@@ -69,9 +69,11 @@ async function signIn(page: Page, email: string, password = 'password123') {
   await page.fill('#email', email)
   await page.fill('#password', password)
   await page.click('button[type=submit]')
-  // The redirect is driven by the client router after the server action
-  // resolves, so wait on the URL rather than racing the click.
-  await page.waitForURL(/\/(dashboard|employer|admin)/, { timeout: 20000 })
+  // Signing in lands on the homepage whatever the role, so wait for the sign-in
+  // page to be left behind rather than for a particular destination. The
+  // redirect is driven by the client router after the server action resolves,
+  // so wait on the URL rather than racing the click.
+  await page.waitForURL((url) => !url.pathname.startsWith('/signin'), { timeout: 20000 })
 }
 
 /** Writes a minimal but genuinely valid PDF to upload as a CV. */
@@ -192,7 +194,9 @@ async function run(browser: Browser) {
   await templatePage.fill('#email', recruiterEmail)
   await templatePage.fill('#password', 'password123')
   await templatePage.click('button[type=submit]')
-  await templatePage.waitForURL(/\/employer/, { timeout: 20000 })
+  // Sign-in lands on the homepage regardless of role, so wait for the sign-in
+  // page to be left behind before navigating on.
+  await templatePage.waitForURL((url) => !url.pathname.startsWith('/signin'), { timeout: 20000 })
   await templatePage.goto(`${BASE}/employer/post-job`)
 
   await templatePage.fill('#title', 'customer serv')
@@ -227,6 +231,15 @@ async function run(browser: Browser) {
   console.log('\n3. Admin approves the listing')
   await page.context().clearCookies()
   await signIn(page, adminEmail)
+  check('Signing in lands on the homepage, not a dashboard', new URL(page.url()).pathname === '/')
+  check(
+    'Signing in leaves the visitor signed in',
+    (await page.context().cookies()).some((cookie) => cookie.name === 'hireme_session'),
+  )
+  check(
+    'Signed-in homepage stops offering "Sign in"',
+    (await page.locator('header a[href="/signin"]').count()) === 0,
+  )
   await page.goto(`${BASE}/admin/jobs?status=PENDING`)
   check('Pending job appears in the moderation queue', (await page.textContent('body'))?.includes(jobTitle) ?? false)
 

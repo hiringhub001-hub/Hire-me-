@@ -88,6 +88,7 @@ export async function GET(request: Request): Promise<Response> {
     role: user.role as Role,
   })
 
-  const home = user.role === 'ADMIN' ? '/admin' : user.role === 'EMPLOYER' ? '/employer' : '/dashboard'
-  return NextResponse.redirect(absoluteUrl(safeNext(parsed.next ?? '', home)))
+  // The homepage, matching password sign-in: signing in is not a request for
+  // your dashboard. An interrupted `next` still wins.
+  return NextResponse.redirect(absoluteUrl(safeNext(parsed.next ?? '', '/')))
 }

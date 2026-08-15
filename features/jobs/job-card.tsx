@@ -5,10 +5,29 @@ import { csv, employmentLabels, formatSalary, timeAgo, workModeLabels } from '@/
 import { Badge } from '@/components/ui'
 import type { JobCardData } from '@/features/jobs/queries'
 
-export function SourceBadge({ source, sourceName }: { source: string; sourceName?: string | null }) {
+export function SourceBadge({
+  source,
+  sourceName,
+  easyApply,
+}: {
+  source: string
+  sourceName?: string | null
+  /** True when the application is completed here rather than off-site. */
+  easyApply?: boolean
+}) {
   const board = partnerBoards[source as PartnerBoard] ?? partnerBoards.OTHER
-  if (source === 'DIRECT') {
-    return <Badge tone="brand">Apply on CareerHub</Badge>
+
+  // The distinction candidates care about is how much work applying will be,
+  // so lead with that rather than with where the listing came from.
+  if (source === 'DIRECT' || easyApply) {
+    return (
+      <Badge tone="brand" className="gap-1">
+        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
+          <path d="M13 2 3 14h7l-1 8 10-12h-7z" />
+        </svg>
+        Easy Apply
+      </Badge>
+    )
   }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -68,7 +87,11 @@ export function JobCard({ job }: { job: JobCardData }) {
           ) : null}
 
           <div className="mt-3 flex items-center justify-between gap-2">
-            <SourceBadge source={job.source} sourceName={job.sourceName} />
+            <SourceBadge
+              source={job.source}
+              sourceName={job.sourceName}
+              easyApply={job.allowInternal}
+            />
             <time
               dateTime={new Date(job.postedAt).toISOString()}
               className="text-xs text-slate-500 dark:text-slate-400"

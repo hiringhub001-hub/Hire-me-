@@ -75,6 +75,10 @@ always sees the applicants for jobs they posted, and can never see anyone else's
 
 There is **one** way in, and it is invisible to everyone else.
 
+Promote an account with `npm run make:admin -- you@example.com` (run it with no
+argument to list existing accounts and their roles). Sign out and back in afterwards — the role
+lives in the session cookie.
+
 - The admin dashboard lives at **`https://careerhub.com.ng/admin`**.
 - An **Admin** button appears in the site header only for a signed-in admin, carrying an amber
   badge with the number of listings waiting for review. On mobile, admin entries are added to the
@@ -88,12 +92,10 @@ Sections: **Overview** (queue counts, companies and reviews awaiting approval, r
 
 To make yourself an admin on the live site, run this once against the production database:
 
-```sql
-UPDATE "User" SET role = 'ADMIN' WHERE email = 'you@example.com';
+```bash
+npm run make:admin -- you@example.com          # local
+DATABASE_URL="<production-url>" npm run make:admin -- you@example.com   # production
 ```
-
-Sign out and back in — the role is carried in the session cookie, so it takes effect on the next
-sign-in.
 
 ---
 
@@ -158,6 +160,42 @@ The covering note is **optional**. A required essay costs more good applications
 it filters out, and an empty box is more honest than a padded one.
 
 ---
+
+## Posting a job
+
+Five fields: title, company, city, country and a description. Everything else — salary, duties,
+requirements, benefits, category, contact email — sits behind "Add more detail" and is optional. The
+contact address defaults to the recruiter's own account, because we already know it.
+
+Typing a job title offers a **template** (`content/job-templates.ts`) covering the roles small
+employers actually post: web developer, customer service, virtual assistant, nanny, sales, driver,
+teacher, accountant, cleaner, security, receptionist and more. Picking one fills the description,
+duties, requirements, skills and category, all freely editable.
+
+Recruiters choose how candidates apply, exactly as on LinkedIn:
+
+- **Easy Apply** — the application happens on CareerHub, with the CV already on the candidate's
+  profile. Applications land in the employer dashboard and are emailed out.
+- **Apply on my site** — candidates are sent to the employer's own careers page, or an existing
+  LinkedIn/Indeed listing. A bare domain is accepted and repaired rather than rejected.
+
+Job cards and job pages carry an **Easy Apply** badge so candidates can see at a glance how much
+work applying will be.
+
+## Google sign-in
+
+Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and a "Continue with Google" button appears on
+sign-in and sign-up. Until then it renders nothing — there is never a button that fails when
+pressed. Create the credentials at Google Cloud → APIs & Services → Credentials (type: Web
+application) and register this exact redirect URI:
+
+```
+https://careerhub.com.ng/api/auth/google/callback
+```
+
+Accounts created this way have no password; signing in with one at the password form gets a clear
+message pointing at the Google button rather than "incorrect password". An existing account with the
+same address is linked rather than duplicated, and its role is left untouched.
 
 ## Job review, and why a posted job may not appear
 

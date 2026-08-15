@@ -28,14 +28,15 @@ export default async function PostJobPage() {
     <div className="max-w-3xl">
       <h2 className="text-lg font-bold text-slate-900 dark:text-white">Post a job</h2>
       <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-        You can host the application here, or point candidates to a listing you have already
-        published on LinkedIn, Indeed or your own careers page. Either way the job gets a full page
-        on CareerHub with our own skills breakdown, salary context and interview guidance attached.
+        Five fields and you are done. Type the job title and we will offer a ready-made description
+        you can edit — everything else is optional. Choose Easy Apply to receive applications here,
+        or send candidates to your own site.
       </p>
 
       <Card className="mt-6">
         <PostJobForm
           categories={categories}
+          recruiterEmail={session.email}
           defaultCompany={
             company
               ? {

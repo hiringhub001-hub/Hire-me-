@@ -625,7 +625,9 @@ const jobs: SeedJob[] = [
 async function main() {
   console.log('Seeding…')
 
-  // Idempotent: wipe the seeded tables so re-running gives a clean dataset.
+  // Idempotent for CONTENT only. Real user accounts are never deleted: this
+  // script gets run against databases that already have live registrations, and
+  // wiping those would destroy the site's actual users.
   await prisma.application.deleteMany()
   await prisma.savedJob.deleteMany()
   await prisma.jobFaq.deleteMany()
@@ -640,12 +642,13 @@ async function main() {
   await prisma.jobAlert.deleteMany()
   await prisma.auditLog.deleteMany()
   await prisma.emailLog.deleteMany()
-  await prisma.user.deleteMany()
 
   const password = await bcrypt.hash('password123', 10)
 
-  const admin = await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@careerhub.com.ng' },
+    update: { role: 'ADMIN', passwordHash: password },
+    create: {
       email: 'admin@careerhub.com.ng',
       passwordHash: password,
       name: 'Site Admin',
@@ -654,8 +657,10 @@ async function main() {
     },
   })
 
-  const candidate = await prisma.user.create({
-    data: {
+  const candidate = await prisma.user.upsert({
+    where: { email: 'candidate@careerhub.com.ng' },
+    update: {},
+    create: {
       email: 'candidate@careerhub.com.ng',
       passwordHash: password,
       name: 'Ada Okafor',
@@ -668,8 +673,10 @@ async function main() {
     },
   })
 
-  const employer = await prisma.user.create({
-    data: {
+  const employer = await prisma.user.upsert({
+    where: { email: 'employer@careerhub.com.ng' },
+    update: {},
+    create: {
       email: 'employer@careerhub.com.ng',
       passwordHash: password,
       name: 'Jordan Reeve',

@@ -46,9 +46,19 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
   const { email, password, next } = parsed.data
   const user = await prisma.user.findUnique({ where: { email } })
 
+  // An account created through Google has no password to check. Say so plainly:
+  // this is not an enumeration risk, because the person has already proved they
+  // know the address by typing it, and the alternative is a user staring at
+  // "incorrect password" for a password that never existed.
+  if (user && !user.passwordHash) {
+    return fail(
+      'This account was created with Google. Use the "Continue with Google" button above.',
+    )
+  }
+
   // Same message for unknown email and wrong password so the form cannot be
   // used to enumerate registered addresses.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     // Tell the operator once a run of failures looks like more than a typo.
     const { attempts, shouldAlert, windowMinutes } = recordFailure(email)
     if (shouldAlert) {

@@ -5,12 +5,63 @@ import { getSession } from '@/lib/auth'
 import { getFeaturedJobs, getJobFacets } from '@/features/jobs/queries'
 import { JobCardList } from '@/features/jobs/job-card'
 import { HomeSearch } from '@/features/jobs/home-search'
-import { Container, Section, ButtonLink, Card, Badge } from '@/components/ui'
+import { Badge, ButtonLink, Card, Container, JsonLd, Section } from '@/components/ui'
 import { site } from '@/lib/site'
+import { buildMetadata, faqJsonLd } from '@/lib/seo'
+import type { Metadata } from 'next'
+
+/**
+ * The homepage previously inherited the root layout's generic title. Searchers
+ * do not type a brand they have never heard of — they type the job and the
+ * place, so the title leads with that and carries the brand second.
+ */
+export const metadata: Metadata = buildMetadata({
+  title: 'CareerHub — Jobs in Nigeria, UK and Remote | Career Guides & CV Tools',
+  description:
+    'Search thousands of jobs in Nigeria, the UK and remote roles worldwide. Apply in one place with Easy Apply, get free CV and cover letter tools, salary guides and interview preparation. Free for job seekers.',
+  path: '/',
+})
 
 // Revalidate hourly: the homepage is the most requested page and its content
 // changes only when new jobs are published.
 export const revalidate = 3600
+
+/**
+ * Answers to the queries people actually type. Marked up as FAQPage so Google
+ * can surface them directly, and genuinely useful on the page either way.
+ */
+const homeFaqs = [
+  {
+    question: 'How do I find a job in Nigeria?',
+    answer:
+      'Search by skill rather than only by job title — the same work is advertised under many different names, and skills match what employers actually list as requirements. Filter by location or work type, then read the skills breakdown on the job page before you write anything, because it tells you which requirements the interview is likely to focus on.',
+  },
+  {
+    question: 'Which jobs can I apply for with no experience?',
+    answer:
+      'Filter to entry level and internships. Employers hiring at that level are recruiting for attitude and reliability rather than a track record, so a short, specific covering note about why you want that particular job counts for more than a long CV.',
+  },
+  {
+    question: 'Are remote jobs on CareerHub genuinely remote?',
+    answer:
+      'Each listing states whether it is remote, hybrid or on-site, and remote roles show which country the employer can hire in. Check that before applying — a role advertised as remote is often restricted to one country for tax and employment reasons.',
+  },
+  {
+    question: 'Is CareerHub free for job seekers?',
+    answer:
+      'Yes, entirely. There is no premium tier, no paywalled guidance and no fee to apply. We are funded by advertising. No legitimate employer or job board will ever ask you to pay to apply for a job.',
+  },
+  {
+    question: 'What is Easy Apply?',
+    answer:
+      'Jobs marked Easy Apply are applied for on CareerHub in a couple of taps, using the CV saved on your profile. Other listings send you to the employer\'s own site or their LinkedIn or Indeed page — those are badged so you know before you click.',
+  },
+  {
+    question: 'How do I know a job advert is real?',
+    answer:
+      'Every employer account is reviewed before its listings go live, and we remove anything that asks candidates for money, hides the employer\'s identity, or requests bank or identity documents before a written offer. If something looks wrong, report it and we will investigate the same day.',
+  },
+]
 
 export default async function HomePage() {
   const session = await getSession()
@@ -207,6 +258,31 @@ export default async function HomePage() {
                 </p>
                 <p className="mt-3 text-xs text-slate-500">{guide.readMinutes} min read</p>
               </Card>
+            ))}
+          </div>
+        </Container>
+      </Section>
+
+      {/* Common questions ------------------------------------------------ */}
+      <Section className="pt-0">
+        <Container className="max-w-3xl">
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">
+            Common questions about finding a job
+          </h2>
+          <JsonLd data={faqJsonLd(homeFaqs)} />
+          <div className="mt-4 divide-y divide-slate-200 dark:divide-slate-800">
+            {homeFaqs.map((faq) => (
+              <details key={faq.question} className="group py-4">
+                <summary className="flex cursor-pointer items-center justify-between gap-4 font-medium text-slate-900 dark:text-white">
+                  {faq.question}
+                  <span className="text-slate-400 transition group-open:rotate-45" aria-hidden>
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  {faq.answer}
+                </p>
+              </details>
             ))}
           </div>
         </Container>

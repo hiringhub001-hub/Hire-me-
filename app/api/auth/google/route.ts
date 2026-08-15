@@ -35,5 +35,5 @@ export async function GET(request: Request): Promise<Response> {
     maxAge: 600,
   })
 
-  return NextResponse.redirect(googleAuthUrl(state))
+  return NextResponse.redirect(await googleAuthUrl(state))
 }

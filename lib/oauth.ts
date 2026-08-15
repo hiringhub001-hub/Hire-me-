@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { headers } from 'next/headers'
+
 import { absoluteUrl } from '@/lib/site'
 
 /**
@@ -18,15 +20,34 @@ export const googleEnabled = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
 )
 
-/** Must be registered verbatim in the Google Cloud console. */
-export function googleRedirectUri(): string {
+/**
+ * Must be registered verbatim in the Google Cloud console.
+ *
+ * Derived from the incoming request rather than from NEXT_PUBLIC_SITE_URL, so
+ * the same code works on localhost, a Codespaces preview URL and production
+ * without reconfiguring. Google matches this string exactly, so whichever
+ * origins you sign in from must each be registered as an Authorised redirect
+ * URI — but at least the app no longer sends production's URI from localhost.
+ */
+export async function googleRedirectUri(): Promise<string> {
+  try {
+    const list = await headers()
+    const host = list.get('host')
+    if (host) {
+      const proto = list.get('x-forwarded-proto')?.split(',')[0]?.trim()
+        ?? (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? 'http' : 'https')
+      return `${proto}://${host}/api/auth/google/callback`
+    }
+  } catch {
+    // Called outside a request scope — fall back to the configured origin.
+  }
   return absoluteUrl('/api/auth/google/callback')
 }
 
-export function googleAuthUrl(state: string): string {
+export async function googleAuthUrl(state: string): Promise<string> {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID ?? '',
-    redirect_uri: googleRedirectUri(),
+    redirect_uri: await googleRedirectUri(),
     response_type: 'code',
     scope: 'openid email profile',
     state,
@@ -60,7 +81,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleProfile | 
         code,
         client_id: process.env.GOOGLE_CLIENT_ID ?? '',
         client_secret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-        redirect_uri: googleRedirectUri(),
+        redirect_uri: await googleRedirectUri(),
         grant_type: 'authorization_code',
       }),
     })

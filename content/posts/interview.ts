@@ -9,8 +9,8 @@ export const interviewArticles: ArticleSeed[] = [
       'The five stages of a typical frontend hiring process, the questions that actually get asked, and how to prepare for each without memorising trivia.',
     category: 'Technology',
     tags: ['interview', 'frontend', 'react', 'javascript'],
-    authorName: 'Sam Ferreira',
-    authorRole: 'Engineering manager',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Technical hiring desk',
     readMinutes: 11,
     publishedAt: '2026-03-19',
     sections: [
@@ -130,8 +130,8 @@ export const interviewArticles: ArticleSeed[] = [
       'The STAR method applied properly, with worked answers to the questions that appear in almost every interview regardless of industry.',
     category: 'Interview Preparation',
     tags: ['interview', 'star method', 'behavioural'],
-    authorName: 'Dana Okoye',
-    authorRole: 'Former in-house recruiter, 11 years',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Hiring and recruitment desk',
     readMinutes: 9,
     publishedAt: '2026-02-05',
     sections: [
@@ -220,8 +220,8 @@ export const interviewArticles: ArticleSeed[] = [
       'Role-play scenarios, the metrics you will be asked about, and how to answer the difficult-customer question without sounding rehearsed.',
     category: 'Customer Support',
     tags: ['interview', 'customer service', 'support'],
-    authorName: 'Marcus Lin',
-    authorRole: 'Compensation consultant',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Pay and compensation desk',
     readMinutes: 7,
     publishedAt: '2026-04-27',
     sections: [

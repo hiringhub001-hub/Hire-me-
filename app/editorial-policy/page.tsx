@@ -21,14 +21,14 @@ export default function EditorialPolicyPage() {
         {
           heading: 'Who writes for us',
           body: [
-            'Every guide is written by a named author with direct working experience of the subject — recruiters, hiring managers, compensation specialists and career coaches. We do not publish anonymous articles, and we do not commission writers to produce material on subjects they have not worked in.',
-            'Author names and roles appear at the top and bottom of each article. Where an author has a relevant conflict of interest, we say so in the article.',
+            `Guides are written and maintained by the ${site.name} editorial team and attributed to the desk responsible for the subject — hiring and recruitment, pay and compensation, technical hiring, or career development. The desk appears at the top and bottom of every article, so you can see which part of the site stands behind it.`,
+            'We attribute to a desk rather than invent a personal byline. Where an individual contributor writes for us under their own name, that name appears on the article instead, along with their relevant experience and any conflict of interest.',
           ],
         },
         {
           heading: 'How we research',
           bullets: [
-            'Primary experience first: what the author has seen work, and what they have seen fail.',
+            'Current job adverts and what employers are actually asking for, rather than restating generic advice.',
             'Advertised salary bands and published public-sector pay scales for compensation material, rather than aggregated self-reported figures alone.',
             'Official sources for anything regulatory — professional registration, licensing, right-to-work requirements.',
             'Where a claim is contested or varies by country, we say so rather than presenting one market as universal.',
@@ -37,7 +37,7 @@ export default function EditorialPolicyPage() {
         {
           heading: 'Review before publication',
           steps: [
-            'The author drafts and states which claims are experience-based and which are sourced.',
+            'A draft is written and each claim marked as either sourced or a judgement call.',
             'A second team member reviews for accuracy, and challenges anything that reads as generic advice.',
             'We check that the article says something specific enough to act on. If a draft could apply equally to any role in any country, it goes back.',
             'Legal and regulatory claims are checked against a current official source before publication.',

@@ -12,26 +12,31 @@ export const metadata: Metadata = buildMetadata({
   path: '/about',
 })
 
-const team = [
+/**
+ * What the editorial team covers, not who they are. Naming individuals means
+ * naming real people who have agreed to be named — until then, describing the
+ * work honestly is the only version of this section we can stand behind.
+ */
+const coverage = [
   {
-    name: 'Dana Okoye',
-    role: 'Editorial lead',
-    bio: 'Eleven years as an in-house recruiter across technology and operations, latterly running hiring for a 300-person company. Writes most of our CV and job search guidance.',
+    area: 'CVs and job searching',
+    detail:
+      'How to write a CV that survives a screening pass, how to read a job advert, and how to apply without sending the same document to two hundred employers.',
   },
   {
-    name: 'Marcus Lin',
-    role: 'Compensation',
-    bio: 'Compensation consultant. Builds and reviews our salary guides, and has spent a decade telling people that their offer has more room in it than they think.',
+    area: 'Pay and offers',
+    detail:
+      'Salary ranges built from published pay data and job adverts, refreshed as the market moves, plus how to negotiate an offer without putting it at risk.',
   },
   {
-    name: 'Priya Raman',
-    role: 'Career coaching',
-    bio: 'Career coach specialising in career changers and people returning to work after a break. Writes our career growth and transition material.',
+    area: 'Interviews',
+    detail:
+      'What each stage is actually testing, the questions that come up for a given role, and how to prepare for them without memorising scripts.',
   },
   {
-    name: 'Sam Ferreira',
-    role: 'Technical interviews',
-    bio: 'Engineering manager who has run several hundred technical interviews. Writes our technical interview guides and reviews the skills breakdowns.',
+    area: 'Career changes',
+    detail:
+      'Moving into a new field, returning to work after a break, and working out which of your existing skills transfer and which you need to build.',
   },
 ]
 
@@ -49,7 +54,7 @@ export default function AboutPage() {
 
         <PageHeader
           title={`About ${site.name}`}
-          intro="We are a small team of recruiters, hiring managers and career coaches building the job site we wanted when we were on the other side of the process."
+          intro="We are building the job site we wanted when we were on the other side of the hiring process: real listings, and guidance that tells you how the process actually works."
         />
 
         <div className="prose-content">
@@ -105,21 +110,21 @@ export default function AboutPage() {
 
           <h2>Our standards</h2>
           <p>
-            Everything we publish is written by a named author with relevant working experience, and
-            reviewed before it goes live. When we get something wrong we correct it and say so. Our{' '}
+            Everything we publish is researched against published sources and current job adverts,
+            and reviewed before it goes live. When we get something wrong we correct it and say so.
+            Our{' '}
             <Link href="/editorial-policy">editorial policy</Link> sets out how we source, review
             and update material, and how to tell us about an error.
           </p>
         </div>
 
-        <h2 className="mt-12 text-xl font-bold text-slate-900 dark:text-white">Who writes here</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {team.map((member) => (
-            <Card key={member.name}>
-              <h3 className="font-semibold text-slate-900 dark:text-white">{member.name}</h3>
-              <p className="text-sm text-brand-600 dark:text-brand-400">{member.role}</p>
+        <h2 className="mt-12 text-xl font-bold text-slate-900 dark:text-white">What we cover</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {coverage.map((item) => (
+            <Card key={item.area}>
+              <h3 className="font-semibold text-slate-900 dark:text-white">{item.area}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                {member.bio}
+                {item.detail}
               </p>
             </Card>
           ))}

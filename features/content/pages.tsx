@@ -202,7 +202,11 @@ export async function ContentArticlePage({ kind, slug }: { kind: PostKind; slug:
             description: post.excerpt,
             datePublished: post.publishedAt.toISOString(),
             dateModified: post.updatedAt.toISOString(),
-            author: { '@type': 'Person', name: post.authorName, jobTitle: post.authorRole ?? undefined },
+            // Organization, not Person: our articles are attributed to an
+            // editorial desk rather than to a named individual, and claiming a
+            // Person that does not exist is exactly the kind of thing structured
+            // data reviews penalise.
+            author: { '@type': 'Organization', name: post.authorName, url: site.url },
             publisher: {
               '@type': 'Organization',
               name: site.name,
@@ -310,9 +314,8 @@ export async function ContentArticlePage({ kind, slug }: { kind: PostKind; slug:
                 About this article
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                Written by {post.authorName}
-                {post.authorRole ? `, ${post.authorRole}` : ''}, and reviewed before publication
-                against our{' '}
+                Written by the {post.authorRole ? post.authorRole.toLowerCase() : 'editorial desk'}{' '}
+                at {site.name}, and reviewed before publication against our{' '}
                 <Link href="/editorial-policy" className="text-brand-600 hover:underline">
                   editorial policy
                 </Link>

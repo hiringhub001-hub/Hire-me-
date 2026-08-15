@@ -9,8 +9,8 @@ export const blogArticles: ArticleSeed[] = [
       'Recruitment fraud has become more sophisticated and better written. Here are the patterns that still give it away, and what to do if you have already engaged.',
     category: 'Job Search',
     tags: ['scams', 'safety', 'job search'],
-    authorName: 'Dana Okoye',
-    authorRole: 'Former in-house recruiter, 11 years',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Hiring and recruitment desk',
     readMinutes: 7,
     publishedAt: '2026-05-28',
     sections: [
@@ -94,8 +94,8 @@ export const blogArticles: ArticleSeed[] = [
       'Job hunting now means applying across half a dozen platforms. Here is a system for tracking applications, avoiding duplicates, and following up at the right time.',
     category: 'Job Search',
     tags: ['job search', 'linkedin', 'indeed', 'organisation'],
-    authorName: 'Priya Raman',
-    authorRole: 'Career coach',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Career development desk',
     readMinutes: 6,
     publishedAt: '2026-06-10',
     sections: [
@@ -147,8 +147,8 @@ export const blogArticles: ArticleSeed[] = [
       'Applicant tracking systems are widely misunderstood. Here is what they really do to your document, and the small number of formatting rules that follow from it.',
     category: 'Resume Writing',
     tags: ['ats', 'resume', 'formatting'],
-    authorName: 'Sam Ferreira',
-    authorRole: 'Engineering manager',
+    authorName: 'CareerHub Editorial Team',
+    authorRole: 'Technical hiring desk',
     readMinutes: 6,
     publishedAt: '2026-06-24',
     sections: [

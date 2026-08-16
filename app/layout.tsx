@@ -14,6 +14,8 @@ import { ThemeScript } from '@/components/theme-toggle'
 import { CookieBanner } from '@/components/cookie-banner'
 import { GoogleTag } from '@/components/google-tag'
 import { AdSenseScript } from '@/components/adsense-script'
+import { PHProvider } from './providers'
+
 
 const inter = Inter({
   subsets: ['latin'],
@@ -96,6 +98,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
+      
+      
       <head>
         {/* Google tag first, so it is present in the served HTML for detection
             and so Consent Mode defaults are set before anything can fire. */}
@@ -105,12 +109,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {site.adsenseClient ? (
           <meta name="google-adsense-account" content={site.adsenseClient} />
         ) : null}
+
       </head>
+
       <body className="font-sans">
         <a href="#main" className="skip-link">
           Skip to main content
         </a>
 
+<PHProvider>
         <SiteHeader />
         <main id="main" className="min-h-[60vh]">
           {children}
@@ -129,6 +136,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${site.clarityId}");`}
           </Script>
         ) : null}
+</PHProvider>
 
       </body>
     </html>

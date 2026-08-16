@@ -137,7 +137,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </Script>
         ) : null}
 </PHProvider>
-
       </body>
     </html>
   )

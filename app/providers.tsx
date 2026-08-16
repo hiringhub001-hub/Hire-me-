@@ -1,43 +1,45 @@
 'use client'
+
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 import { useEffect } from 'react'
 
-export function PHProvider({ children }: { children: React.ReactNode }) {
+export function PHProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   useEffect(() => {
-   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-  api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST
+
+    if (!key) {
+      console.error('PostHog key is missing')
+      return
+    }
+
+    if (!host) {
+      console.error('PostHog host is missing')
+      return
+    }
+
+    posthog.init(key, {
+      api_host: host,
       person_profiles: 'identified_only',
-      capture_pageview: true, // Automatically tracks page views safely in Next.js
+      capture_pageview: true,
 
-        session_recording: {
+      session_recording: {
         maskAllInputs: true,
-                // maskTextSelector: '*', // This masks ALL text across the entire website
         maskTextSelector: '[data-sensitive]',
-
-// means PostHog will mask things users type into inputs.
-
-// So things like:
-
-// passwords
-
-// email addresses
-
-// phone numbers
-
-// application answers
-
-// won't be exposed in the recording as readable input values.
-
-// Then this:
-
       },
-
     })
+
+    console.log('PostHog initialized')
   }, [])
 
-  return <PostHogProvider client={posthog}>{children}
-  </PostHogProvider>
+  return (
+    <PostHogProvider client={posthog}>
+      {children}
+    </PostHogProvider>
+  )
 }
-
-   

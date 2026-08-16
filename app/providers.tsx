@@ -8,11 +8,36 @@ export function PHProvider({ children }: { children: React.ReactNode }) {
     posthog.init('phc_wVViwngW33uPy27oHmFXF7VZ78Fmjm7kbL7sYeYMUPB9', {
       api_host: 'https://us.i.posthog.com',
       person_profiles: 'identified_only',
-      capture_pageview: true // Automatically tracks page views safely in Next.js
+      capture_pageview: true, // Automatically tracks page views safely in Next.js
+
+        session_recording: {
+        maskAllInputs: true,
+                // maskTextSelector: '*', // This masks ALL text across the entire website
+        maskTextSelector: '[data-sensitive]',
+
+// means PostHog will mask things users type into inputs.
+
+// So things like:
+
+// passwords
+
+// email addresses
+
+// phone numbers
+
+// application answers
+
+// won't be exposed in the recording as readable input values.
+
+// Then this:
+
+      },
+
     })
   }, [])
 
-  return <PostHogProvider client={posthog}>{children}</PostHogProvider>
+  return <PostHogProvider client={posthog}>{children}
+  </PostHogProvider>
 }
 
 {/* <Script id="posthog-init" strategy="afterInteractive">

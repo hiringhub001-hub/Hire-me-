@@ -34,7 +34,7 @@ export function PHProvider({
       },
     })
 
-    console.log('PostHog initialized')
+    console.log('PostHog initialized correctly')
   }, [])
 
   return (

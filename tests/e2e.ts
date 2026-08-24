@@ -421,6 +421,25 @@ async function run(browser: Browser) {
   await page.waitForURL(/\/admin/, { timeout: 15000 })
   check('Admin link opens the dashboard', page.url().includes('/admin'))
 
+  // The user register: every account must be reachable, including the ones
+  // registered first. This page used to stop at 100 rows with no way past them.
+  await page.goto(`${BASE}/admin/users`)
+  const registerBody = (await page.textContent('body')) ?? ''
+  check('Admin can open the user register', page.url().includes('/admin/users'))
+  check('Register counts every account', /Total users/.test(registerBody))
+  check('Register shows how many rows are on screen', /Showing \d+–\d+ of \d+/.test(registerBody))
+  check('Register lists the seeker who applied', registerBody.includes(seekerEmail))
+  check('Register lists the recruiter who posted', registerBody.includes(recruiterEmail))
+
+  await page.goto(`${BASE}/admin/users?q=${encodeURIComponent(seekerEmail)}`)
+  const searched = (await page.textContent('tbody')) ?? ''
+  check('Register search finds a specific user', searched.includes(seekerEmail))
+  check('Register search excludes everyone else', !searched.includes(recruiterEmail))
+
+  await page.goto(`${BASE}/admin/users?role=EMPLOYER`)
+  const employersOnly = (await page.textContent('tbody')) ?? ''
+  check('Register filters by role', employersOnly.includes(recruiterEmail) && !employersOnly.includes(seekerEmail))
+
   /* 8 — outbound feed ------------------------------------------------------- */
   console.log('\n8. Outbound distribution')
   const feed = await fetch(`${BASE}/feeds/jobs.xml`).then((response) => response.text())

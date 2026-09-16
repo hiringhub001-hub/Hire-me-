@@ -176,9 +176,11 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
         session.role === 'ADMIN' || process.env.AUTO_PUBLISH_JOBS === 'true'
           ? 'PUBLISHED'
           : 'PENDING',
-      // Listings expire after 30 days unless renewed. Google requires stale
-      // postings to be removed, and candidates should not apply to dead roles.
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      // No automatic expiry. A listing stays live until the recruiter who
+      // posted it, or an admin, closes it — a role that is still open should
+      // not vanish on a timer, and a board that empties itself every thirty
+      // days is no use to anyone. `expiresAt` is left null and is only ever set
+      // deliberately, by someone choosing a closing date.
     },
   })
 
@@ -255,8 +257,44 @@ export async function closeJob(jobId: string): Promise<void> {
   if (!job) return
   if (!ownsJob(session, job)) return
 
-  await prisma.job.update({ where: { id: jobId }, data: { status: 'CLOSED' } })
+  // Closing is now the only way a listing leaves the site, so it also clears
+  // any closing date that was set: the decision has been made, and a stale
+  // date left behind would contradict a later reopen.
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { status: 'CLOSED', expiresAt: null },
+  })
   await logAudit('job.closed', 'Job', jobId)
+  revalidatePath('/employer/jobs')
+  revalidatePath(`/jobs/${job.slug}`)
+  revalidatePath('/jobs')
+  revalidatePath('/feeds/jobs.xml')
+}
+
+/**
+ * Puts a closed listing back on the site.
+ *
+ * Closing used to be permanent, which made recruiters reluctant to use it and
+ * left roles up that had been filled. It goes back to PUBLISHED rather than
+ * through moderation again: it was already reviewed once, and the employer is
+ * reopening their own advert rather than submitting a new one.
+ */
+export async function reopenJob(jobId: string): Promise<void> {
+  const session = await requireRole(['EMPLOYER', 'ADMIN'], '/employer/jobs')
+
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    select: { id: true, slug: true, status: true, authorId: true, company: { select: { ownerId: true } } },
+  })
+  if (!job) return
+  if (!ownsJob(session, job)) return
+  if (job.status !== 'CLOSED') return
+
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { status: 'PUBLISHED', expiresAt: null, postedAt: new Date() },
+  })
+  await logAudit('job.reopened', 'Job', jobId)
   revalidatePath('/employer/jobs')
   revalidatePath(`/jobs/${job.slug}`)
   revalidatePath('/jobs')

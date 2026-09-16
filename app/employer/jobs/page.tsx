@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth'
 import { employerJobScope } from '@/features/employer/scope'
-import { closeJob } from '@/features/employer/actions'
+import { closeJob, reopenJob } from '@/features/employer/actions'
 import { ShareJob } from '@/features/jobs/share-job'
 import { Badge, ButtonLink, EmptyState } from '@/components/ui'
 import { buildMetadata } from '@/lib/seo'
@@ -98,21 +98,25 @@ export default async function EmployerJobsPage() {
                     ) : null}
                   </div>
 
-                  {job.status !== 'CLOSED' ? (
-                    <form
-                      action={async () => {
-                        'use server'
-                        await closeJob(job.id)
-                      }}
+                  {/*
+                    A listing stays up until it is closed here — nothing expires
+                    on a timer — and closing can be undone, so filling a role is
+                    not a decision a recruiter has to be nervous about.
+                  */}
+                  <form
+                    action={async () => {
+                      'use server'
+                      if (job.status === 'CLOSED') await reopenJob(job.id)
+                      else await closeJob(job.id)
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        Close listing
-                      </button>
-                    </form>
-                  ) : null}
+                      {job.status === 'CLOSED' ? 'Reopen listing' : 'Close listing'}
+                    </button>
+                  </form>
                 </div>
 
                 {/* Promote the listing off-site — traffic comes back here. */}

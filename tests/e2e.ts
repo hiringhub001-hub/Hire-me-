@@ -440,6 +440,29 @@ async function run(browser: Browser) {
   const employersOnly = (await page.textContent('tbody')) ?? ''
   check('Register filters by role', employersOnly.includes(recruiterEmail) && !employersOnly.includes(seekerEmail))
 
+  // The visitor log: the only view of the people who never sign up, who are
+  // most of a job board's audience.
+  const guest = await browser.newPage()
+  await guest.goto(`${BASE}/faq`)
+  await guest.goto(`${BASE}/career`)
+  await guest.waitForTimeout(1800)
+  await guest.close()
+
+  await page.goto(`${BASE}/admin/visitors`)
+  const visitorBody = (await page.textContent('body')) ?? ''
+  check('Admin can open the visitor log', page.url().includes('/admin/visitors'))
+  check('Visitor log counts visits and visitors', /Visits today/.test(visitorBody) && /Visitors today/.test(visitorBody))
+  check('Visitor log records guests who never signed up', /Guest/.test(visitorBody))
+  check('Visitor log shows what is being read', /Most read/.test(visitorBody))
+  check('Visitor log states that no IP address is kept', /No IP addresses are stored/i.test(visitorBody))
+
+  const loggedGuests = await prisma.visit.count({ where: { userId: null } })
+  check('Guest page views reach the database', loggedGuests > 0, `${loggedGuests} recorded`)
+  const adminVisits = await prisma.visit.count({ where: { path: { startsWith: '/admin' } } })
+  check('The admin area is never logged', adminVisits === 0)
+  const stored = await prisma.visit.findFirst({ select: { visitorKey: true } })
+  check('A visitor is stored as a hash, not an address', !/\d+\.\d+\.\d+\.\d+/.test(stored?.visitorKey ?? ''))
+
   /* 8 — outbound feed ------------------------------------------------------- */
   console.log('\n8. Outbound distribution')
   const feed = await fetch(`${BASE}/feeds/jobs.xml`).then((response) => response.text())
@@ -448,13 +471,49 @@ async function run(browser: Browser) {
 
   /* 9 — expiry and ads.txt --------------------------------------------------- */
   console.log('\n9. Expiry handling and ads.txt')
+
+  // Nothing expires on a timer. A listing comes down when a person takes it
+  // down, which is the only thing that should decide whether a role is open.
+  check('A new listing is given no expiry date', published!.expiresAt === null)
+
+  // Driven through the recruiter's own screen, because that is the only way a
+  // listing is supposed to come down now.
+  const recruiterPage = await browser.newPage()
+  await signIn(recruiterPage, recruiterEmail)
+  await recruiterPage.goto(`${BASE}/employer/jobs`)
+  const listingRow = recruiterPage.locator('li', { hasText: jobTitle }).first()
+  await listingRow.locator('button:has-text("Close listing")').click()
+  await recruiterPage.waitForTimeout(1500)
+
+  const afterClose = await prisma.job.findUnique({ where: { id: published!.id } })
+  check('The recruiter can close their own listing', afterClose?.status === 'CLOSED')
+  const closedSearch = await page.request.get(`${BASE}/jobs?q=${encodeURIComponent('Test Support Officer')}`)
+  check('A closed listing drops out of search', !(await closedSearch.text()).includes(jobTitle))
+
+  await recruiterPage.goto(`${BASE}/employer/jobs`)
+  await recruiterPage
+    .locator('li', { hasText: jobTitle })
+    .first()
+    .locator('button:has-text("Reopen listing")')
+    .click()
+  await recruiterPage.waitForTimeout(1500)
+
+  const afterReopen = await prisma.job.findUnique({ where: { id: published!.id } })
+  check('Closing can be undone', afterReopen?.status === 'PUBLISHED')
+  check('Reopening leaves no expiry date behind', afterReopen?.expiresAt === null)
+  const reopenedSearch = await page.request.get(`${BASE}/jobs?q=${encodeURIComponent('Test Support Officer')}`)
+  check('A reopened listing is findable again', (await reopenedSearch.text()).includes(jobTitle))
+  await recruiterPage.close()
+
+  // A closing date set deliberately is still honoured — that is the difference
+  // between someone choosing an end date and the site imposing one.
   await prisma.job.update({
     where: { id: published!.id },
     data: { expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
   })
 
   const listing = await page.request.get(`${BASE}/jobs?q=${encodeURIComponent('Test Support Officer')}`)
-  check('Expired job drops out of search', !(await listing.text()).includes(jobTitle))
+  check('A listing past a deliberate closing date drops out of search', !(await listing.text()).includes(jobTitle))
 
   const expiredFeed = await fetch(`${BASE}/feeds/jobs.xml`).then((r) => r.text())
   check('Expired job drops out of the partner feed', !expiredFeed.includes(jobTitle))

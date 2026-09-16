@@ -30,7 +30,8 @@ export default function PrivacyPage() {
           bullets: [
             'Account data — your name, email address and password (stored only as a cryptographic hash, never in readable form). If you choose to complete your profile we also store your headline, location, phone number, skills and any CV link you add.',
             'Application data — when you apply for a job through this site: your name, email, phone number, CV link and the cover letter you write. This is shared with the employer you applied to.',
-            'Technical and usage data — IP address, browser type, pages visited and referring page. This is used to keep the service secure, to prevent abuse, and to understand which pages are useful.',
+            'Technical and usage data — browser type, coarse device type, pages visited and the site that referred you. This keeps the service secure, prevents abuse and shows us which pages are worth keeping.',
+            'Visit counts — we record that a page was viewed, and we count how many separate people viewed it that day. We do not store your IP address to do this: the address and browser string are combined with a secret and the calendar date into a one-way hash. It cannot be reversed to identify you, and because the date is part of it, the same person visiting tomorrow produces a completely different value. We cannot follow anyone from one day to the next, by design.',
           ],
         },
         {
@@ -39,6 +40,7 @@ export default function PrivacyPage() {
             'We do not ask for or store payment details from job seekers. The service is free and always will be.',
             'We do not require identity documents, national insurance or social security numbers, or bank details. No legitimate employer needs these before a written offer, and we will never ask for them on their behalf.',
             'We do not sell personal data to anyone, for any purpose.',
+            'We do not store IP addresses alongside the pages you read, and we do not build a profile of an individual visitor\u2019s browsing across days.',
           ],
         },
         {
@@ -87,6 +89,7 @@ export default function PrivacyPage() {
             'Applications: for two years, so you retain a record of your job search history and employers can meet their own record-keeping obligations.',
             'Job alerts: until you unsubscribe.',
             'Technical logs: 90 days.',
+            'Visit records: 90 days, after which they are deleted. The daily hash that groups them is already meaningless before then.',
             'Audit records of moderation decisions: three years, so we can account for why a listing was removed.',
           ],
         },

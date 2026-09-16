@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { after } from 'next/server'
 import { Inter } from 'next/font/google'
 
 import './globals.css'
 import { site } from '@/lib/site'
 import { getSession } from '@/lib/auth'
+import { collectVisit, recordVisit } from '@/lib/visits'
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo'
 import { JsonLd } from '@/components/ui'
 import { SiteHeader } from '@/components/site-header'
@@ -95,6 +97,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Read once here and pass down, so the role-aware nav does not re-read the
   // session in three separate components.
   const session = await getSession()
+
+  // Read during the render because `headers()` is unavailable inside `after()`,
+  // then written once the response has gone out, so a database insert never
+  // sits between a visitor and their page. Guests are the point: they are most
+  // of the audience and the only group nothing else on the site can see.
+  const visit = await collectVisit()
+  after(() => recordVisit(visit, session?.userId ?? null))
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>

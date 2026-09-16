@@ -24,9 +24,13 @@ model User {
   // Null for accounts created through Google sign-in, which never set one.
   passwordHash  String?
   name          String
-  /** Profile picture from an OAuth provider. */
+  /**
+   * Profile picture from an OAuth provider.
+   */
   image         String?
-  /** "google" when the account was created through Google sign-in. */
+  /**
+   * "google" when the account was created through Google sign-in.
+   */
   authProvider  String?
   role          String    @default("CANDIDATE") // CANDIDATE | EMPLOYER | ADMIN
   emailVerified DateTime?
@@ -42,8 +46,8 @@ model User {
   cvFileName String?
   cvMimeType String?
   cvSize     Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   company      Company?
   applications Application[]
@@ -52,6 +56,7 @@ model User {
   documents    Document[]
   postedJobs   Job[]         @relation("JobAuthor")
   auditLogs    AuditLog[]
+  visits       Visit[]
 
   @@index([role])
 }
@@ -61,21 +66,21 @@ model User {
 // ---------------------------------------------------------------------------
 
 model Company {
-  id          String  @id @default(cuid())
-  slug        String  @unique
-  name        String
-  tagline     String?
-  description String // original editorial overview, not a scraped blurb
-  industry    String
-  website     String?
-  logoUrl     String?
-  size        String?
-  founded     Int?
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  name         String
+  tagline      String?
+  description  String // original editorial overview, not a scraped blurb
+  industry     String
+  website      String?
+  logoUrl      String?
+  size         String?
+  founded      Int?
   headquarters String?
-  culture     String?
-  benefits    String? // newline separated
-  approved    Boolean @default(false)
-  featured    Boolean @default(false)
+  culture      String?
+  benefits     String? // newline separated
+  approved     Boolean @default(false)
+  featured     Boolean @default(false)
 
   ownerId String? @unique
   owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
@@ -103,18 +108,18 @@ model CompanyLocation {
 }
 
 model CompanyReview {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  authorName  String
-  jobTitle    String?
-  rating      Int
-  title       String
-  body        String
-  pros        String?
-  cons        String?
-  approved    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorName String
+  jobTitle   String?
+  rating     Int
+  title      String
+  body       String
+  pros       String?
+  cons       String?
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   @@index([companyId, approved])
 }
@@ -137,18 +142,18 @@ model Job {
   authorId String?
   author   User?   @relation("JobAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 
-  city        String
-  country     String
-  workMode    String  @default("ONSITE") // ONSITE | HYBRID | REMOTE
-  employment  String  @default("FULL_TIME") // FULL_TIME | PART_TIME | CONTRACT | INTERNSHIP | TEMPORARY
-  experience  String  @default("MID") // ENTRY | JUNIOR | MID | SENIOR | LEAD
-  education   String? // HIGH_SCHOOL | DIPLOMA | BACHELOR | MASTER | PHD
-  salaryMin   Int?
-  salaryMax   Int?
-  salaryPeriod String @default("YEAR") // HOUR | MONTH | YEAR
-  currency    String  @default("USD")
+  city         String
+  country      String
+  workMode     String  @default("ONSITE") // ONSITE | HYBRID | REMOTE
+  employment   String  @default("FULL_TIME") // FULL_TIME | PART_TIME | CONTRACT | INTERNSHIP | TEMPORARY
+  experience   String  @default("MID") // ENTRY | JUNIOR | MID | SENIOR | LEAD
+  education    String? // HIGH_SCHOOL | DIPLOMA | BACHELOR | MASTER | PHD
+  salaryMin    Int?
+  salaryMax    Int?
+  salaryPeriod String  @default("YEAR") // HOUR | MONTH | YEAR
+  currency     String  @default("USD")
 
-  skills          String // comma separated
+  skills           String // comma separated
   responsibilities String // newline separated
   requirements     String // newline separated
   benefits         String? // newline separated
@@ -167,13 +172,13 @@ model Job {
   salaryInsight    String?
   industryOverview String?
 
-  status     String    @default("PENDING") // PENDING | PUBLISHED | REJECTED | CLOSED
-  featured   Boolean   @default(false)
-  views      Int       @default(0)
-  postedAt   DateTime  @default(now())
-  expiresAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  status    String    @default("PENDING") // PENDING | PUBLISHED | REJECTED | CLOSED
+  featured  Boolean   @default(false)
+  views     Int       @default(0)
+  postedAt  DateTime  @default(now())
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   applications Application[]
   savedBy      SavedJob[]
@@ -214,11 +219,11 @@ model Category {
 // ---------------------------------------------------------------------------
 
 model Application {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   jobId       String
-  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job         Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user        User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   fullName    String
   email       String
   phone       String?
@@ -230,10 +235,10 @@ model Application {
   cvFileName String?
   cvMimeType String?
   cvSize     Int?
-  status      String   @default("SUBMITTED") // SUBMITTED | REVIEWING | SHORTLISTED | REJECTED | HIRED
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status     String   @default("SUBMITTED") // SUBMITTED | REVIEWING | SHORTLISTED | REJECTED | HIRED
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([jobId, email])
   @@index([userId])
@@ -287,11 +292,11 @@ model Document {
 // ---------------------------------------------------------------------------
 
 model Post {
-  id String @id @default(cuid())
+  id          String   @id @default(cuid())
   // Slugs are unique per content kind, so /salary/frontend-developer and
   // /interview/frontend-developer can both exist as distinct guides.
-  slug String
-  kind String @default("BLOG") // BLOG | CAREER | INTERVIEW | SALARY
+  slug        String
+  kind        String   @default("BLOG") // BLOG | CAREER | INTERVIEW | SALARY
   title       String
   excerpt     String
   body        String // structured JSON sections authored in house
@@ -313,14 +318,14 @@ model Post {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorName String
-  email     String
-  body      String
-  approved  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  email      String
+  body       String
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   @@index([postId, approved])
 }
@@ -363,17 +368,48 @@ model Setting {
 /// email provider. That gives us a delivery audit trail, lets the app work with
 /// no provider configured (status QUEUED), and makes retries possible.
 model EmailLog {
-  id        String   @id @default(cuid())
-  to        String
-  subject   String
-  template  String // application_candidate | application_employer | application_admin | job_posted_admin | job_posted_employer
-  status    String   @default("QUEUED") // QUEUED | SENT | FAILED
+  id         String   @id @default(cuid())
+  to         String
+  subject    String
+  template   String // application_candidate | application_employer | application_admin | job_posted_admin | job_posted_employer
+  status     String   @default("QUEUED") // QUEUED | SENT | FAILED
   providerId String?
-  error     String?
-  entity    String? // e.g. Application, Job
-  entityId  String?
-  createdAt DateTime @default(now())
+  error      String?
+  entity     String? // e.g. Application, Job
+  entityId   String?
+  createdAt  DateTime @default(now())
 
   @@index([status, createdAt])
   @@index([entity, entityId])
+}
+
+/// A single page view, including from visitors who never sign up.
+///
+/// Deliberately not a log of people. No IP address is stored: `visitorKey` is a
+/// one-way hash of the address, the user agent and a secret, re-salted every
+/// day, which is enough to count how many distinct visitors arrived today and
+/// useless for identifying anyone or following them across days. That keeps the
+/// admin view honest — "412 visits from 90 visitors" — without the site quietly
+/// becoming a surveillance database.
+model Visit {
+  id         String   @id @default(cuid())
+  path       String
+  /// Where they arrived from: an external host, or null for direct traffic.
+  referrer   String?
+  /// Coarse device class only — "Mobile", "Tablet", "Desktop" or "Bot".
+  device     String
+  /// Browser family, e.g. "Chrome". Never the full user-agent string.
+  browser    String
+  /// Best-effort country from the CDN's geo header, when it provides one.
+  country    String?
+  /// Salted daily hash. Counts unique visitors within a day, nothing more.
+  visitorKey String
+  /// Null for guests, which is the whole point of this table.
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([visitorKey])
 }

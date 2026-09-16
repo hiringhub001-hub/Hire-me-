@@ -9,6 +9,7 @@ const nav = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/jobs', label: 'Moderate jobs' },
   { href: '/admin/users', label: 'Users' },
+  { href: '/admin/visitors', label: 'Visitors' },
   { href: '/employer/post-job', label: 'Post a job' },
 ]
 

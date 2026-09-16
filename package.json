@@ -24,7 +24,8 @@
     "setup:local": "tsx scripts/dev-setup.ts",
     "db:doctor": "tsx scripts/db-doctor.ts",
     "audit:ads": "tsx tests/ads-audit.ts",
-    "clean:demo": "tsx scripts/remove-demo-content.ts"
+    "clean:demo": "tsx scripts/remove-demo-content.ts",
+    "jobs:unexpire": "tsx scripts/clear-auto-expiry.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -54,8 +54,13 @@ const jobCardSelect = {
 export type JobCardData = Prisma.JobGetPayload<{ select: typeof jobCardSelect }>
 
 /**
- * Live means published and not past its expiry date. Google requires expired
- * postings to stop appearing, and candidates should never apply to a dead role.
+ * Live means published, and not past a closing date if someone set one.
+ *
+ * Nothing expires automatically. A listing comes down when the recruiter who
+ * posted it or an admin closes it, which is the only thing that should decide
+ * whether a role is still open. `expiresAt` is null on everything unless a
+ * closing date was chosen deliberately, and it is still honoured when it was —
+ * Google does require a posting past its stated validThrough to stop appearing.
  */
 export const liveJobWhere: Prisma.JobWhereInput = {
   status: 'PUBLISHED',

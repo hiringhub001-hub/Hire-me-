@@ -22,6 +22,7 @@ export default async function AdminHome() {
     pendingJobs,
     publishedJobs,
     users,
+    visitsToday,
     applications,
     pendingCompanies,
     pendingReviews,
@@ -30,6 +31,9 @@ export default async function AdminHome() {
     prisma.job.count({ where: { status: 'PENDING' } }),
     prisma.job.count({ where: { status: 'PUBLISHED' } }),
     prisma.user.count(),
+    // Page views in the last 24 hours, so the overview shows whether anyone is
+    // arriving at all — the registered-user count never answers that.
+    prisma.visit.count({ where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
     prisma.application.count(),
     prisma.company.findMany({
       where: { approved: false },
@@ -61,12 +65,13 @@ export default async function AdminHome() {
 
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
           { label: 'Awaiting review', value: pendingJobs, href: '/admin/jobs?status=PENDING' },
           { label: 'Published jobs', value: publishedJobs, href: '/admin/jobs' },
           { label: 'Users', value: users, href: '/admin/users' },
           { label: 'Applications', value: applications, href: '/employer/applications' },
+          { label: 'Visits (24h)', value: visitsToday, href: '/admin/visitors' },
         ].map((stat) => (
           <Link
             key={stat.label}

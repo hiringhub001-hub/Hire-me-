@@ -77,6 +77,7 @@ export function MobileMenu({ signedIn, role }: { signedIn: boolean; role: string
         { href: '/admin', label: 'Admin dashboard' },
         { href: '/admin/jobs', label: 'Moderate jobs' },
         { href: '/admin/users', label: 'Manage users' },
+        { href: '/admin/visitors', label: 'Visitors' },
         ...recruiterMenu,
       ]
     : isRecruiter

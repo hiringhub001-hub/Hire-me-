@@ -7,6 +7,7 @@ import {
 } from '@/features/jobs/queries'
 import { JobLandingPage } from '@/features/jobs/landing-page'
 import { buildMetadata } from '@/lib/seo'
+import { buildListingSnapshot } from '@/lib/listing-insight'
 
 /**
  * Rendered per request, not cached as static HTML.
@@ -61,6 +62,9 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       }
       body={[
         category.description,
+        // Counted from the adverts on this page, so the text changes as the
+        // market does instead of being the same paragraph on every category.
+        ...buildListingSnapshot(jobs, category.name.toLowerCase()),
         `Applications in this category are read by people, not just software, but they are read quickly. The listings below each include a skills breakdown explaining what the requirements actually mean in the job and how they get tested at interview — worth reading before you write anything.`,
       ]}
       crumbs={[

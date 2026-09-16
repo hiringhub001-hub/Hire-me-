@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 import { prisma } from '@/lib/db'
+import { writtenDescription } from '@/lib/company-insight'
 import { Badge, Breadcrumbs, Card, Container, JsonLd, PageHeader, Section } from '@/components/ui'
 import { breadcrumbJsonLd, buildMetadata } from '@/lib/seo'
 
@@ -67,7 +68,8 @@ export default async function CompaniesPage() {
               </div>
 
               <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                {company.description}
+                {writtenDescription(company.description) ||
+                  `${company.name} is hiring in ${company.industry.toLowerCase()}. Open roles, pay and how to apply are on the profile.`}
               </p>
 
               <div className="mt-4 flex flex-wrap items-center gap-1.5">

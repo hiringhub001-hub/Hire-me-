@@ -206,6 +206,41 @@ async function main() {
   }
   if (!placeholders) ok('No placeholder or demo content on key pages')
 
+  /* 8b — stub pages must not be offered to search ----------------------------- */
+  console.log('\n8b. Thin pages are kept out of the index')
+  const companyList = await get('/companies')
+  const companySlugs = [
+    ...new Set([...companyList.html.matchAll(/\/company\/([a-z0-9-]+)"/g)].map((m) => m[1] as string)),
+  ].slice(0, 6)
+
+  let stubsIndexed = 0
+  let checked = 0
+  for (const slug of companySlugs) {
+    const { html } = await get(`/company/${slug}`)
+    const words = wordCount(html)
+    const noindex = /<meta name="robots"[^>]*noindex/i.test(html)
+    checked += 1
+    // Either it says enough to rank, or it is explicitly withheld from search.
+    if (words < 400 && !noindex) stubsIndexed += 1
+    if (/has not yet been expanded/i.test(html)) {
+      bad(`/company/${slug} still carries the placeholder blurb`)
+    }
+  }
+  check(
+    stubsIndexed === 0,
+    `No thin company profile is offered to search (${checked} checked)`,
+    stubsIndexed ? `${stubsIndexed} thin and indexable` : '',
+  )
+
+  const sitemap = await get('/sitemap.xml')
+  const sitemapCompanies = [...sitemap.html.matchAll(/\/company\/([a-z0-9-]+)</g)].map((m) => m[1] as string)
+  let sitemapStubs = 0
+  for (const slug of sitemapCompanies.slice(0, 6)) {
+    const { html } = await get(`/company/${slug}`)
+    if (/<meta name="robots"[^>]*noindex/i.test(html)) sitemapStubs += 1
+  }
+  check(sitemapStubs === 0, 'Sitemap never lists a page marked noindex')
+
   /* 9 — admin surface --------------------------------------------------------- */
   console.log('\n9. Admin surface is not public')
   const browser = await chromium.launch()

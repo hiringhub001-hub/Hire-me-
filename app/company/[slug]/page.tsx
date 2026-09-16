@@ -7,6 +7,7 @@ import { JobCard } from '@/features/jobs/job-card'
 import { AdSlot } from '@/components/ad-slot'
 import { Badge, Breadcrumbs, Card, Container, JsonLd, Section } from '@/components/ui'
 import { breadcrumbJsonLd, buildMetadata } from '@/lib/seo'
+import { buildCompanyInsight, writtenDescription } from '@/lib/company-insight'
 import { absoluteUrl } from '@/lib/site'
 import { formatSalary, lines } from '@/lib/utils'
 
@@ -73,10 +74,15 @@ export async function generateMetadata({
   if (!company) {
     return buildMetadata({ title: 'Company not found', description: '', path: `/company/${slug}`, noIndex: true })
   }
+  const insight = buildCompanyInsight(company, company.jobs, company.description)
   return buildMetadata({
-    title: `${company.name} — jobs, culture, benefits and reviews`,
-    description: `${company.name} is hiring. Read an independent overview of the company, its benefits and culture, employee reviews and all ${company.jobs.length} open roles.`,
+    title: `${company.name} — open roles, pay and how to apply`,
+    description: insight.summary.slice(0, 300),
     path: `/company/${company.slug}`,
+    // A profile with one advert and a generated blurb is a stub. It stays
+    // reachable, but it is not offered to search until there is something on it
+    // worth ranking.
+    noIndex: !insight.substantial,
   })
 }
 
@@ -84,6 +90,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params
   const company = await loadCompany(slug)
   if (!company) notFound()
+
+  const insight = buildCompanyInsight(company, company.jobs, company.description)
+  const written = writtenDescription(company.description)
 
   const crumbs = [
     { name: 'Home', href: '/' },
@@ -121,7 +130,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
             '@context': 'https://schema.org',
             '@type': 'Organization',
             name: company.name,
-            description: company.description,
+            description: writtenDescription(company.description) || insight.summary,
             url: absoluteUrl(`/company/${company.slug}`),
             sameAs: company.website ? [company.website] : undefined,
             foundingDate: company.founded ? String(company.founded) : undefined,
@@ -214,7 +223,61 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
               <h2 id="overview-heading" className="text-xl font-bold text-slate-900 dark:text-white">
                 Overview
               </h2>
-              <p className="prose-content mt-3">{company.description}</p>
+              <p className="prose-content mt-3">{insight.summary}</p>
+              {written ? <p className="prose-content mt-3">{written}</p> : null}
+            </section>
+
+            <section className="mt-10" aria-labelledby="hiring-heading">
+              <h2 id="hiring-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                What {company.name} is hiring for
+              </h2>
+              <p className="prose-content mt-3">{insight.hiring}</p>
+            </section>
+
+            <section className="mt-10" aria-labelledby="where-heading">
+              <h2 id="where-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                Where the roles are
+              </h2>
+              <p className="prose-content mt-3">{insight.locations}</p>
+            </section>
+
+            <section className="mt-10" aria-labelledby="pay-heading">
+              <h2 id="pay-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                What the listings say about pay
+              </h2>
+              <p className="prose-content mt-3">{insight.pay}</p>
+            </section>
+
+            {insight.skills.length ? (
+              <section className="mt-10" aria-labelledby="skills-heading">
+                <h2
+                  id="skills-heading"
+                  className="text-xl font-bold text-slate-900 dark:text-white"
+                >
+                  Skills asked for most often
+                </h2>
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {insight.skills.map((skill) => (
+                    <li
+                      key={skill.label}
+                      className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300"
+                    >
+                      {skill.label}
+                      {skill.count > 1 ? (
+                        <span className="ml-1 text-xs text-slate-500">x{skill.count}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+                <p className="prose-content mt-3">{insight.skillsNote}</p>
+              </section>
+            ) : null}
+
+            <section className="mt-10" aria-labelledby="applying-heading">
+              <h2 id="applying-heading" className="text-xl font-bold text-slate-900 dark:text-white">
+                How to apply to {company.name}
+              </h2>
+              <p className="prose-content mt-3">{insight.applying}</p>
             </section>
 
             {company.culture ? (

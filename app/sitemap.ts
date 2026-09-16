@@ -8,6 +8,7 @@ import {
   getLocationCounts,
 } from '@/features/jobs/queries'
 import { absoluteUrl } from '@/lib/site'
+import { isSubstantial } from '@/lib/company-insight'
 
 export const revalidate = 3600
 
@@ -21,9 +22,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
       select: { slug: true, updatedAt: true },
     }),
+    // Stub profiles are marked noindex, so they stay out of the sitemap too —
+    // offering Google a page we have asked it not to index wastes crawl budget
+    // on the thinnest thing we publish. See lib/company-insight.ts.
     prisma.company.findMany({
       where: { approved: true },
-      select: { slug: true, updatedAt: true },
+      select: {
+        slug: true,
+        updatedAt: true,
+        description: true,
+        jobs: { where: { status: 'PUBLISHED' }, select: { id: true } },
+      },
     }),
     prisma.post.findMany({
       where: { published: true },
@@ -89,12 +98,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
-    ...companies.map((company) => ({
-      url: absoluteUrl(`/company/${company.slug}`),
-      lastModified: company.updatedAt,
-      changeFrequency: 'weekly' as const,
-      priority: 0.6,
-    })),
+    ...companies
+      .filter((company) => isSubstantial(company.description, company.jobs.length))
+      .map((company) => ({
+        url: absoluteUrl(`/company/${company.slug}`),
+        lastModified: company.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      })),
     ...posts.map((post) => ({
       url: absoluteUrl(`${kindPaths[post.kind as keyof typeof kindPaths]}/${post.slug}`),
       lastModified: post.updatedAt,

@@ -115,11 +115,11 @@ export async function postJob(_prev: ActionState, formData: FormData): Promise<A
         slug: companySlug,
         name: values.companyName,
         industry: values.companyIndustry || 'General',
-        // A company profile still needs something readable on it, so fall back
-        // to a plain factual line rather than blocking the posting.
-        description:
-          values.companyDescription ||
-          `${values.companyName} is hiring in ${values.city}, ${values.country}. This profile was created from a job posting and has not yet been expanded by the employer.`,
+        // Empty when the recruiter did not write one. The profile page builds
+        // its own analysis from the company's live listings, which is worth
+        // reading; the old fallback was a sentence announcing that the page had
+        // nothing on it, repeated across every profile.
+        description: values.companyDescription || '',
         website: values.companyWebsite || null,
         headquarters: `${values.city}, ${values.country}`,
         ownerId: session.role === 'EMPLOYER' ? session.userId : null,

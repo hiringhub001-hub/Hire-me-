@@ -29,6 +29,52 @@ export default function ContactPage() {
           intro="A person reads every message. We reply within two working days, and the same day for reports of fraudulent listings."
         />
 
+        {/*
+          A contact page that is only a form is one of the thinner things a site
+          can publish, and it is one of the pages a reviewer opens first. Saying
+          what happens after you press send is more useful than the form itself.
+        */}
+        <div className="prose-content mb-8 max-w-3xl">
+          <h2>What to expect when you write to us</h2>
+          <p>
+            Every message is read by a person. General enquiries are answered within two working
+            days. Reports of fraudulent listings are handled the same day, because a scam advert
+            left up for a weekend does real damage.
+          </p>
+          <p>
+            If you are writing about a specific job, include the page address. It saves a round
+            trip, and it lets us check the listing against what the employer originally submitted.
+          </p>
+
+          <h2>The things we are asked most</h2>
+          <p>
+            <strong>A job on the site looks fake.</strong> Tell us and we will investigate that day.
+            We remove anything that asks a candidate for money, hides the employer&apos;s identity,
+            or moves the conversation to a messaging app before an interview. You do not need to be
+            certain — a suspicion is enough for us to look.
+          </p>
+          <p>
+            <strong>I applied and heard nothing.</strong> We pass applications to the employer and
+            confirm by email that yours was sent, but we cannot make an employer reply, and we have
+            no visibility of their decision. If you applied on a partner site through a link here,
+            your application never touched our systems and the employer is the only one who can help.
+          </p>
+          <p>
+            <strong>Something in a guide is wrong or out of date.</strong> Write to the editorial
+            address with the page and what you think is wrong. Corrections from readers have
+            improved several of these guides, and we would rather be corrected than confident.
+          </p>
+          <p>
+            <strong>I want my data removed.</strong> Use the privacy address and say which account
+            or application it concerns. We will confirm what we hold and remove it.
+          </p>
+          <p>
+            <strong>I want to advertise a role.</strong> You can post one yourself from the employer
+            area. Every listing is reviewed by a person before it goes live, which usually takes a
+            few hours rather than days.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
           <Card>
             <ContactForm />

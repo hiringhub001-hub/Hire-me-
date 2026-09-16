@@ -7,6 +7,7 @@ import {
 } from '@/features/jobs/queries'
 import { JobLandingPage } from '@/features/jobs/landing-page'
 import { buildMetadata } from '@/lib/seo'
+import { buildListingSnapshot } from '@/lib/listing-insight'
 
 /**
  * Rendered per request, not cached as static HTML.
@@ -55,6 +56,9 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
       intro={`${data.total} open ${data.total === 1 ? 'vacancy' : 'vacancies'} in ${data.country}, from employers hiring directly and from partner boards such as LinkedIn and Indeed.`}
       body={[
         `These are the roles currently open in ${data.country}. Remote positions appear here when the employer can hire in ${data.country}, so it is worth checking the working arrangement on each listing rather than assuming from the location alone.`,
+        // Counted from the adverts on this page, so each location reads
+        // differently and changes as the market does.
+        ...buildListingSnapshot(data.jobs, `${data.country}`),
         `Before applying, check what the role should pay in this market. Advertised ranges vary widely between employers of different sizes, and going into a screening call without a figure of your own is the most common way candidates end up under-paid.`,
       ]}
       crumbs={[

@@ -73,7 +73,15 @@ export async function SiteHeader() {
           </ul>
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
+        {/*
+          Every action here is hidden below `sm` except the theme toggle and the
+          menu button. A signed-in admin was getting the theme toggle, an Admin
+          link, a Dashboard link and the menu button side by side, which is six
+          pixels wider than a 390px phone and pushed every page on the site
+          sideways. Everything hidden here is in the drawer, which is where a
+          phone should reach it anyway.
+        */}
+        <div className="ml-auto flex min-w-0 items-center gap-1">
           <ThemeToggle />
 
           {/* Only an admin session ever renders this. Everyone else has no link
@@ -81,7 +89,7 @@ export async function SiteHeader() {
           {isAdmin ? (
             <Link
               href="/admin"
-              className={`${buttonClass({ variant: 'secondary', size: 'sm' })} gap-1.5`}
+              className={`${buttonClass({ variant: 'secondary', size: 'sm' })} hidden gap-1.5 sm:inline-flex`}
             >
               Admin
               {pendingCount > 0 ? (
@@ -93,7 +101,10 @@ export async function SiteHeader() {
           ) : null}
 
           {session ? (
-            <Link href={dashboardHref} className={buttonClass({ variant: 'outline', size: 'sm' })}>
+            <Link
+              href={dashboardHref}
+              className={`${buttonClass({ variant: 'outline', size: 'sm' })} hidden sm:inline-flex`}
+            >
               {isRecruiter ? 'Dashboard' : 'My account'}
             </Link>
           ) : (

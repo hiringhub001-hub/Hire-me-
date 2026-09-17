@@ -237,7 +237,7 @@ export default async function AdminVisitorsPage({
       </div>
 
       <h3 className="mt-8 font-semibold text-slate-900 dark:text-white">Recent page views</h3>
-      <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+      <div className="relative mt-3 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-slate-50 text-left dark:bg-slate-900">
             <tr>

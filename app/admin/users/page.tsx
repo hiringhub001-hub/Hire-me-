@@ -184,7 +184,14 @@ export default async function AdminUsersPage({
           : `Showing ${(current - 1) * PAGE_SIZE + 1}–${Math.min(current * PAGE_SIZE, matching)} of ${matching}${filtered ? ` matching (${total} total)` : ''}`}
       </p>
 
-      <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+      {/*
+        `relative` is load-bearing. An absolutely positioned descendant — a
+        visually hidden <label>, a tooltip — is only clipped by an ancestor
+        that establishes a containing block, so without it such an element
+        escapes this scroller entirely and widens the whole document. That is
+        what pushed every admin page sideways on a phone.
+      */}
+      <div className="relative mt-3 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-slate-50 text-left dark:bg-slate-900">
             <tr>

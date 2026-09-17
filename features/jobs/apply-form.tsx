@@ -8,6 +8,7 @@ import { applyToJob } from '@/features/jobs/actions'
 import { idleState } from '@/lib/action-state'
 import { CV_ACCEPT, MAX_CV_BYTES, formatBytes } from '@/lib/cv'
 import { track } from '@/lib/analytics'
+import { site } from '@/lib/site'
 import { Alert, Field, buttonClass, inputClass } from '@/components/ui'
 
 function SubmitButton() {
@@ -222,6 +223,13 @@ export function ApplyForm({
         <textarea id="coverLetter" name="coverLetter" rows={6} className={inputClass} />
       </Field>
 
+      {/*
+        The old wording covered sending the application on but never said the
+        obvious thing: that we keep a copy. Someone handing over a CV is
+        entitled to be told where it is going to live, for how long, and who
+        controls it once the employer has it, before they press the button
+        rather than afterwards in a policy page they will not open.
+      */}
       <label className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
         <input
           type="checkbox"
@@ -230,10 +238,25 @@ export function ApplyForm({
           className="mt-0.5 h-5 w-5 rounded border-slate-300 text-brand-600"
         />
         <span>
-          I agree that CareerHub may send my CV and these details to this employer for this
-          application, in line with the Privacy Policy.
+          I agree that {site.name} may store my details and CV in its database, and send this
+          application to this employer. I have read the{' '}
+          <Link href="/terms" className="text-brand-600 underline">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="text-brand-600 underline">
+            Privacy Policy
+          </Link>
+          .
         </span>
       </label>
+
+      <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+        What this means in practice: we keep your application for two years so you can see it in
+        your dashboard, and we send it to this employer, who then controls their copy of it and
+        answers to their own privacy policy. We cannot withdraw an application once they have it.
+        You can ask us to delete what we hold at any time.
+      </p>
 
       <SubmitButton />
 

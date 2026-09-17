@@ -59,6 +59,11 @@ jobs:
           --health-retries 10
     env:
       E2E_BASE_URL: http://localhost:3200
+      # The journey suite creates this admin; the layout suite then signs in as
+      # it so the admin, employer and candidate screens are audited too. Those
+      # hold the widest tables on the site and no signed-out crawl reaches them.
+      LAYOUT_ADMIN_EMAIL: e2e-admin@careerhub.test
+      LAYOUT_ADMIN_PASSWORD: password123
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

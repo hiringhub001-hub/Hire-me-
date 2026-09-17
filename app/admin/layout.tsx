@@ -27,7 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SignOutButton action={signOut} />
         </div>
 
-        <nav aria-label="Admin" className="mt-6 -mx-4 overflow-x-auto px-4">
+        <nav aria-label="Admin" className="relative mt-6 -mx-4 overflow-x-auto px-4">
           <ul className="flex min-w-max gap-1 border-b border-slate-200 dark:border-slate-800">
             {nav.map((item) => (
               <li key={item.href}>

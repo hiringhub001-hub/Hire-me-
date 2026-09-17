@@ -30,7 +30,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
 
         {/* Horizontally scrollable tabs work better than a sidebar on phones. */}
-        <nav aria-label="Dashboard" className="mt-6 -mx-4 overflow-x-auto px-4">
+        <nav aria-label="Dashboard" className="relative mt-6 -mx-4 overflow-x-auto px-4">
           <ul className="flex min-w-max gap-1 border-b border-slate-200 dark:border-slate-800">
             {nav.map((item) => (
               <li key={item.href}>

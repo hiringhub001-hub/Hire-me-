@@ -36,6 +36,35 @@ export default function TermsPage() {
           ],
         },
         {
+          heading: 'Applying for jobs, and what happens to your data',
+          body: [
+            `When you submit an application through ${site.name}, you provide us with personal data: your name, your email address, your telephone number where given, the CV file you upload and any covering note you write. You are asked to confirm, by ticking the box on the application form, that you have read and accept this section and our Privacy Policy. We do not accept an application without that confirmation.`,
+            `By submitting an application you acknowledge and agree that ${site.name} will store the information you provide, including the contents of your CV, on its systems and in its database, and will process it for the purposes set out below. Your data is held on servers operated by our hosting and database providers, who process it only on our instructions and under written terms.`,
+          ],
+          bullets: [
+            `To transmit your application, in full and including your CV, to the employer or recruiter who posted the listing you applied to. That employer becomes an independent controller of your data from the moment they receive it, and their own privacy policy governs what they do with it afterwards. ${site.name} is not able to recall, amend or delete an application once the employer has received it.`,
+            'To notify you that your application was received, and to let you see it in your dashboard so you keep a record of where you have applied.',
+            'To let you reuse a CV you have already uploaded for later applications, so you are not asked for the same file repeatedly.',
+            'To detect and prevent fraudulent listings, duplicate or automated applications, and misuse of the service.',
+            'To meet our own legal and record-keeping obligations.',
+          ],
+        },
+        {
+          heading: 'Retention, withdrawal and your control',
+          bullets: [
+            `We keep applications for two years from the date of submission, so that you retain a record of your job search and so employers can meet their own record-keeping obligations. After that they are deleted. Full retention periods for every category of data are set out in the Privacy Policy.`,
+            'You may withdraw your consent, ask for a copy of what we hold, or ask us to delete your data at any time by writing to the address in the Privacy Policy. Withdrawing consent does not affect processing already carried out, and it cannot oblige an employer to delete an application they have already received — you would need to contact them directly.',
+            'Deleting your account removes your profile and your stored CV from our systems. Applications already delivered to an employer remain with that employer.',
+            `${site.name} does not sell personal data, does not share applicant data with anyone other than the employer you applied to and the service providers described in the Privacy Policy, and does not use the contents of your CV for advertising.`,
+          ],
+        },
+        {
+          heading: 'Applying on a partner site',
+          body: [
+            `Some listings are sourced from partner job boards and send you to the employer's own application page. Where a listing does that, the apply button says so before you click it. In those cases your application is made on that third party's platform, ${site.name} never receives your CV or your details, and that platform's terms and privacy policy apply instead of ours. We have no control over, and accept no responsibility for, how a third-party platform handles your data.`,
+          ],
+        },
+        {
           heading: 'Acceptable use',
           body: ['You agree not to do any of the following.'],
           bullets: [
